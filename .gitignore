@@ -1,0 +1,26 @@
+# Operating-system metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Local environment values; keep documented templates trackable
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.*.example
+!.env.*.template
+
+# Editor recovery files
+*~
+*.swp
+*.swo
+
+# Repository-local scratch and cache directories
+/.cache/
+/tmp/
+/work/
+
+# Add tool-specific dependency/build paths when the toolchain is selected.
+# Do not blanket-ignore XML, JSON, PDFs, images, lockfiles or fixtures.

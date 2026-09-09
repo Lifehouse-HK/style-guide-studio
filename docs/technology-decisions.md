@@ -2,6 +2,8 @@
 
 Status: recommendations for discussion, not selected dependencies. No application code should be written until this discussion is resolved.
 
+Progress and unresolved decisions are tracked in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md), actions D01/D02 and questions Q01–Q04. This document supplies context, not a separate approval or status record.
+
 ## Repository
 
 Recommend one software repository with independent modules and separate public engine interfaces. Keep the future document/publication collection in a different repository. This decision does not require a framework or package manager.
