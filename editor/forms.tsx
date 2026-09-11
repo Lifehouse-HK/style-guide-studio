@@ -1,3 +1,4 @@
+import { ParagraphInput, type ParagraphInputHandle } from './paragraph-input.tsx';
 import {
   alignments,
   alignSelection,
@@ -230,25 +231,23 @@ function TextField({
 }: {
   label: string;
   value: string;
-  onChange: (s: string) => void;
+  onChange: (s: string, align?: Alignment[]) => void;
   guide: Guide;
   catalogues: Catalogue[];
   lang: 'en' | 'zh';
   align: Alignment[];
   onAlign: (value: Alignment, start: number, end: number) => void;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null),
+  const ref = useRef<ParagraphInputHandle>(null),
     [selection, setSelection] = useState<[number, number]>([0, 0]),
     [picker, setPicker] = useState(false),
     [key, setKey] = useState('');
   function put(before: string, after = '') {
     const ta = ref.current!;
-    const a = ta.selectionStart,
-      b = ta.selectionEnd;
+    const [a, b] = ta.selection();
     onChange(value.slice(0, a) + before + value.slice(a, b) + after + value.slice(b));
     requestAnimationFrame(() => {
-      ta.focus();
-      ta.setSelectionRange(a + before.length, b + before.length);
+      ta.select(a + before.length, b + before.length);
     });
   }
   return (
@@ -264,28 +263,26 @@ function TextField({
         <button type="button" aria-label="Underline" onClick={() => put('__', '__')}>
           <Icon name="type-underline" />
         </button>
-        {(['left', 'center', 'right'] as const).map((value) => (
+        {(['left', 'center', 'right'] as const).map((option) => (
           <button
-            key={value}
+            key={option}
             type="button"
-            aria-label={`Align ${value}`}
+            aria-label={`Align ${option}`}
             aria-pressed={(() => {
-              const [a, b] = paragraphRange(ref.current?.value ?? '', ...selection);
-              return align.slice(a, b + 1).every((v) => v === value);
+              const [a, b] = paragraphRange(value, ...selection);
+              return align.slice(a, b + 1).every((v) => v === option);
             })()}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               const ta = ref.current!;
-              const start = ta.selectionStart,
-                end = ta.selectionEnd;
-              onAlign(value, start, end);
+              const [start, end] = ta.selection();
+              onAlign(option, start, end);
               requestAnimationFrame(() => {
-                ta.focus();
-                ta.setSelectionRange(start, end);
+                ta.select(start, end);
               });
             }}
           >
-            <Icon name={`text-${value}`} />
+            <Icon name={`text-${option}`} />
           </button>
         ))}
         {(
@@ -313,8 +310,7 @@ function TextField({
         </button>
       </div>
       <small className="hint">
-        Alignment applies to the current or selected paragraphs. Enter starts a paragraph; proof
-        shows alignment.
+        Alignment applies to the current or selected paragraphs. Enter starts a paragraph.
       </small>
       {picker && (
         <div className="reference-picker">
@@ -353,15 +349,13 @@ function TextField({
           </button>
         </div>
       )}
-      <textarea
+      <ParagraphInput
         ref={ref}
-        onSelect={(e) =>
-          setSelection([e.currentTarget.selectionStart, e.currentTarget.selectionEnd])
-        }
-        aria-label={label}
-        rows={7}
+        label={label}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        align={align}
+        onSelection={setSelection}
+        onChange={onChange}
       />
     </div>
   );
@@ -507,7 +501,14 @@ export function NodeFields({
                     onAlign={(align, start, end) =>
                       updateBlock(alignSelection(b, l, start, end, align))
                     }
-                    onChange={(text) => updateBlock(editText(b, l, text))}
+                    onChange={(text, align) => {
+                      const next = editText(b, l, text);
+                      updateBlock(
+                        align
+                          ? { ...next, paragraphAlign: { ...next.paragraphAlign, [l]: align } }
+                          : next,
+                      );
+                    }}
                     guide={guide}
                     catalogues={catalogues}
                   />

@@ -81,16 +81,13 @@ try {
     false,
   );
   await click('Add block');
-  await page.evaluate(() => {
-    for (const [label, value] of [
-      ['English text', 'Use clear language.'],
-      ['繁體中文文本', '使用清晰的語言。'],
-    ]) {
-      const el = document.querySelector(`textarea[aria-label="${label}"]`)!;
-      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(el, value);
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-  });
+  for (const [label, value] of [
+    ['English text', 'Use clear language.'],
+    ['繁體中文文本', '使用清晰的語言。'],
+  ]) {
+    await page.click(`[role="textbox"][aria-label="${label}"]`);
+    await page.keyboard.type(value);
+  }
   await click('Save provision');
   await click('Move this provision…');
   await click('Cancel');

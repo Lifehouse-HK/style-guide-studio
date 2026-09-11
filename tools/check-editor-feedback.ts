@@ -56,13 +56,64 @@ try {
   assert.equal(await page.$eval('.breadcrumb', (b) => b.querySelectorAll('button').length), 3);
   await page.click('.child-section tbody button');
   await page.waitForSelector('button[aria-label="Underline"]');
-  await page.$eval('textarea[aria-label="English text"]', (el) => {
-    const t = el as HTMLTextAreaElement;
-    t.focus();
-    t.setSelectionRange(t.value.indexOf('Second') + 2, t.value.indexOf('Second') + 5);
+  const field = '[role="textbox"][aria-label="English text"]';
+  await page.$eval(field, (el) => {
+    const node = el.children[1].firstChild!;
+    (el as HTMLElement).focus();
+    const range = document.createRange();
+    range.setStart(node, 2);
+    range.setEnd(node, 5);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
   });
   await page.click('button[aria-label="Align center"]');
-
+  await page.waitForFunction(
+    () =>
+      (
+        document.querySelector('[role="textbox"][aria-label="English text"]')!
+          .children[1] as HTMLElement
+      ).style.textAlign === 'center',
+  );
+  assert.deepEqual(
+    await page.$$eval(field + ' p', (ps) => ps.map((p) => getComputedStyle(p).textAlign)),
+    ['left', 'center', 'left'],
+  );
+  // Real editing stays in the aligned paragraph, including splitting and undo.
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.$$eval(field + ' p', (ps) => ps.length), 4);
+  await page.keyboard.down('Meta');
+  await page.keyboard.press('z');
+  await page.keyboard.up('Meta');
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[role="textbox"][aria-label="English text"]')!.children.length === 3,
+  );
+  assert.deepEqual(
+    await page.$$eval(field + ' p', (ps) => ps.map((p) => getComputedStyle(p).textAlign)),
+    ['left', 'center', 'left'],
+  );
+  // Pasting consumes plain text even when HTML is on the clipboard.
+  await page.$eval(field, (el) => {
+    const data = new DataTransfer();
+    data.setData('text/plain', '<b>literal</b>');
+    data.setData('text/html', '<b>literal</b>');
+    el.dispatchEvent(
+      new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data }),
+    );
+  });
+  assert.equal(await page.$eval(field, (el) => el.querySelector('b')), null);
+  assert.match(await page.$eval(field, (el) => el.textContent!), /<b>literal<\/b>/);
+  await page.keyboard.down('Meta');
+  await page.keyboard.press('z');
+  await page.keyboard.up('Meta');
+  await page.waitForFunction(() =>
+    document
+      .querySelector('[role="textbox"][aria-label="English text"]')!
+      .textContent!.includes('Second paragraph'),
+  );
+  await page.screenshot({ path: 'work/feedback/aligned-input.png' });
   await click('Save provision');
   await page.click('.breadcrumb button:nth-of-type(1)');
   await click('Proof');

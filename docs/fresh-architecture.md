@@ -35,3 +35,7 @@ Akoma Ntoso XML is a projection with a complete embedded source workspace and di
 ## Storage and publishing
 
 The static browser application requires no server account. Save/Discard applies edits in memory; recovery writes local browser storage, and Download project creates the portable backup. Enacted metadata is a workflow record, not a cryptographic certificate. Publication authority, repository review, canonical URLs and deployment belong to the future corpus build.
+
+## Paragraph-aware source input
+
+The fixed text form uses a restricted ProseMirror control with paragraphs and plain text only. Paragraph alignment is visible while editing. Formatting markers remain source text; this is not an editable publication canvas. The adapter maps source newline offsets to editor selections, preserves selections across toolbar operations and supplies local Undo/Redo. Clipboard HTML is reduced to plain text. The independent document/render modules do not depend on the editing library.

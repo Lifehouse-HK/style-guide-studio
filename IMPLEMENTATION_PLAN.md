@@ -41,3 +41,8 @@ No implementation phase is active. Next ready action is user evaluation of the r
 
 - [x] F2: Scope alignment to the cursor paragraph or selected paragraphs rather than the whole text block. Source and renderer preserve per-language paragraph alignment; text editing and amendment substitutions remap formatting around inserted/deleted newlines. Existing block-wide settings remain a fallback for saved documents.
 - Fresh 17-test suite passed, including selection boundaries, other-language isolation and split/merge inheritance. Type check/build passed. Browser feedback story checks selecting within the middle of three paragraphs and confirms rendered left/centre/left alignment.
+
+## Visible paragraph alignment — 2026-09-12
+
+- [x] F3: Replace the plain textarea with a restricted paragraph-aware text box. Selected paragraph alignment is visible immediately, with stable source offsets, plain-text paste and field-local Undo/Redo. The fixed form workflow is unchanged.
+- Fresh type check, 17 tests and production build passed. Browser stories cover bilingual typing, visible left/centre/left paragraph styles, Enter/Undo, and matching proof output; the aligned input screenshot was inspected. The larger browser bundle now triggers Vite’s advisory size warning (about 213 kB gzip); no build failure. Actual OS-level Chinese IME qualification is not claimed by scripted typing checks.
