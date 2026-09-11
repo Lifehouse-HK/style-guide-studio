@@ -1,3 +1,4 @@
+import { targets, provisionLabel } from '../../../packages/engine/src/references.ts';
 import { Icon } from './Icon.tsx';
 import { useEffect, useState } from 'react';
 import {
@@ -66,6 +67,9 @@ export function AmendmentPanel({
   }, [base, project, date]);
   const langs = activeLanguages(project);
   const nodes = state ? walk(state.project.provisions).filter((n) => !n.repealed) : [];
+  const targetLabels = new Map(
+    state ? targets(state.project).map((t) => [t.id, provisionLabel(t, 'en')]) : [],
+  );
   const options =
     scope === 'structure'
       ? nodes
@@ -73,7 +77,7 @@ export function AmendmentPanel({
           (scope === 'shared' ? (n.shared ?? []) : (n.content[scope] ?? [])).map((b) => ({
             ...b,
             heading: n.heading,
-            label: n.label,
+            label: targetLabels.get(n.id) ?? n.label,
           })),
         );
   function choose(id: string, nextKind = kind, nextScope = scope) {
@@ -305,7 +309,7 @@ export function AmendmentPanel({
                 setScope('structure');
               }}
             >
-              <option value="insert">Insert provision</option>
+              <option value="insert">Insert provision / Part / Schedule</option>
               <option value="substitute">Substitute</option>
               <option value="omit">Omit / repeal</option>
             </select>
@@ -322,7 +326,7 @@ export function AmendmentPanel({
                   setBlock(null);
                 }}
               >
-                <option value="structure">Whole provision</option>
+                <option value="structure">Whole provision / Part / Schedule</option>
                 {langs.map((l) => (
                   <option key={l} value={l}>
                     {l === 'en' ? 'English' : 'Chinese'} content block
@@ -338,8 +342,8 @@ export function AmendmentPanel({
               <option value="">Select target</option>
               {options.map((n) => (
                 <option key={n.id} value={n.id}>
-                  {n.label} {n.heading.en ?? n.heading['zh-Hant']}{' '}
-                  {'type' in n ? '· ' + n.type : ''}
+                  {'kind' in n ? targetLabels.get(n.id) : n.label}{' '}
+                  {n.heading.en ?? n.heading['zh-Hant']} {'type' in n ? '· ' + n.type : ''}
                 </option>
               ))}
             </select>

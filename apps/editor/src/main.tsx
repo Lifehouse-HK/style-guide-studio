@@ -36,7 +36,7 @@ import {
   type Layout,
 } from '../../../packages/presentation/src/index.ts';
 import type { Revision } from '../../../packages/engine/src/amendments.ts';
-import { change, findBlock, insertProvision, sample, uid } from './model.ts';
+import { change, findBlock, insertProvision, sample, uid, setProvisionLabel } from './model.ts';
 import { RichText } from './RichText.tsx';
 import './style.css';
 import { Icon } from './Icon.tsx';
@@ -148,6 +148,7 @@ function App() {
   const [addKind, setAddKind] = useState<Kind>('section');
   const [addPosition, setAddPosition] = useState<'after' | 'child' | 'end'>('after');
   const [addLabel, setAddLabel] = useState('');
+  const [numberDraft, setNumberDraft] = useState('');
   const client = useRef<CatalogueClient | null>(null);
   const sourceIndexes = useMemo(() => {
     try {
@@ -160,6 +161,10 @@ function App() {
   const diagnostics = useMemo(() => validate(project), [project]);
   const all = useMemo(() => walk(project.provisions), [project]);
   const chosen = all.find((n) => n.id === selected);
+  useEffect(() => {
+    setNumberDraft(chosen?.label ?? '');
+    setFormError('');
+  }, [selected, chosen?.label, panel]);
   const langs: Language[] = layout === 'parallel' ? ['en', 'zh-Hant'] : [layout];
   useEffect(() => {
     if (!dirty) return;
@@ -555,7 +560,19 @@ function App() {
                     : '')
                 }
               >
-                <span className="number">
+                <button
+                  type="button"
+                  className="number number-button"
+                  hidden={n.kind === 'crossheading'}
+                  disabled={!editable || n.repealed}
+                  aria-label={`Edit number for ${names[n.kind]} ${n.label ?? ''}`}
+                  title={`Edit ${names[n.kind]} number`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelected(n.id);
+                    openPanel('Provision properties');
+                  }}
+                >
                   {l === 'zh-Hant' && n.label
                     ? ((
                         {
@@ -575,7 +592,8 @@ function App() {
                         : n.label
                           ? '(' + n.label + ')'
                           : ''}
-                </span>
+                  <Icon name="pencil" className="number-edit-icon" />
+                </button>
                 <input
                   aria-label={`${l} heading ${n.label ?? n.kind}`}
                   placeholder={group ? 'Heading' : n.kind === 'section' ? 'Section heading' : ''}
@@ -1531,21 +1549,42 @@ function App() {
                 <p>
                   {names[chosen.kind]} {chosen.label}
                 </p>
-                <label>
-                  Manual number
-                  <input
-                    disabled={!editable}
-                    value={chosen.label ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^[A-Za-z0-9]*$/.test(value))
-                        edit((p) => {
-                          walk(p.provisions).find((n) => n.id === selected)!.label =
-                            value || undefined;
-                        }, selected + 'label');
+                {chosen.kind !== 'crossheading' && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      try {
+                        commit(setProvisionLabel(project, chosen.id, numberDraft));
+                        setNotice(
+                          `${names[chosen.kind]} number updated to ${numberDraft}. References retain their permanent targets.`,
+                        );
+                        setFormError('');
+                      } catch (error) {
+                        setFormError((error as Error).message);
+                      }
                     }}
-                  />
-                </label>
+                  >
+                    <label>
+                      Manual number
+                      <input
+                        key={chosen.id}
+                        autoFocus
+                        required
+                        pattern="[A-Za-z0-9]+"
+                        placeholder="e.g. 1A"
+                        disabled={!editable}
+                        value={numberDraft}
+                        onChange={(e) => setNumberDraft(e.target.value)}
+                      />
+                    </label>
+                    <button
+                      className="primary"
+                      disabled={!editable || numberDraft === chosen.label}
+                    >
+                      Apply number
+                    </button>
+                  </form>
+                )}
                 <p className="hint">
                   Draft labels can be edited. Review detects duplicates; published sources cannot be
                   renumbered here.

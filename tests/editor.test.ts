@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { change, fromRich, insertProvision, sample, toRich } from '../apps/editor/src/model.ts';
+import {
+  change,
+  fromRich,
+  insertProvision,
+  sample,
+  setProvisionLabel,
+  toRich,
+} from '../apps/editor/src/model.ts';
 import { canonical, parseProject, walk, type Inline } from '../packages/domain/src/index.ts';
 test('editor inserts explicit labels without changing existing identities; invalid hierarchy is atomic', () => {
   const p = sample(),
@@ -136,4 +143,99 @@ test('recovery retains the old slot when a backup write fails and preserves malf
     /quota/,
   );
   assert.equal(values.get(recoveryKey), old);
+});
+
+test('manual draft labels apply to Parts, Schedules and nested provisions without changing identities', () => {
+  const source = sample(),
+    before = canonical(source);
+  let edited = source;
+  for (const node of walk(source.provisions)
+    .filter((n) => n.kind !== 'crossheading')
+    .reverse()) {
+    edited = setProvisionLabel(edited, node.id, node.label + 'A');
+  }
+  assert.deepEqual(
+    walk(edited.provisions).map((n) => n.id),
+    walk(source.provisions).map((n) => n.id),
+  );
+  for (const old of walk(source.provisions)) {
+    const next = walk(edited.provisions).find((n) => n.id === old.id)!;
+    assert.equal(next.label, old.label + 'A');
+    assert.deepEqual(next.content, old.content);
+    assert.deepEqual(next.shared, old.shared);
+  }
+  const parts = source.provisions.filter((n) => n.kind === 'part');
+  assert.throws(() => setProvisionLabel(source, parts[0].id, parts[1].label!), /already used/);
+  assert.throws(() => setProvisionLabel(source, parts[0].id, ''), /Enter a number/);
+  assert.throws(
+    () => setProvisionLabel({ ...source, stage: 'adopted' }, parts[0].id, '1A'),
+    /read-only/,
+  );
+  assert.equal(canonical(source), before);
+});
+
+test('Part amendments insert an alphanumeric Part and child, substitute its heading and omit a subtree', async () => {
+  const { translationGuide, provision } = await import('../fixtures/examples.ts');
+  const { amendmentDraft, appendOperation, proposedState } =
+    await import('../apps/editor/src/amendment-model.ts');
+  const base = translationGuide();
+  const part = (id: string, label: string, children: typeof base.provisions) => ({
+    id,
+    kind: 'part' as const,
+    label,
+    heading: { en: 'Conventions', 'zh-Hant': '慣例' },
+    content: {},
+    tail: {},
+    children,
+  });
+  base.provisions = [
+    part('part1', '1', base.provisions.slice(0, 2)),
+    part('part2', '2', base.provisions.slice(2, 4)),
+    base.provisions[4],
+  ];
+  const original = canonical(base);
+  let draft = amendmentDraft(base, { en: 'Amendment 2027', 'zh-Hant': '2027年修訂指引' });
+  const instructions = { en: 'Amend the Part.', 'zh-Hant': '修訂該部。' };
+  draft = await appendOperation(base, draft, '2027-01-01', '1', {
+    type: 'insert',
+    scope: 'structure',
+    target: 'part1',
+    position: 'after',
+    node: part('part1a', '1A', []),
+    instructions,
+  });
+  draft = await appendOperation(base, draft, '2027-01-01', '2', {
+    type: 'insert',
+    scope: 'structure',
+    target: 'part1a',
+    position: 'last',
+    node: provision('s5b', '5B', 'New text', '新文字'),
+    instructions,
+  });
+  let state = await proposedState(base, draft, '2027-01-01');
+  assert.deepEqual(
+    state.project.provisions.map((n) => n.id),
+    ['part1', 'part1a', 'part2', 'sch1'],
+  );
+  const replacement = structuredClone(state.project.provisions[1]);
+  replacement.heading = { en: 'New conventions', 'zh-Hant': '新慣例' };
+  draft = await appendOperation(base, draft, '2027-01-01', '3', {
+    type: 'substitute',
+    scope: 'structure',
+    target: 'part1a',
+    node: replacement,
+    instructions,
+  });
+  draft = await appendOperation(base, draft, '2027-01-01', '4', {
+    type: 'omit',
+    scope: 'structure',
+    target: 'part2',
+    instructions,
+  });
+  state = await proposedState(base, draft, '2027-01-01');
+  assert.equal(state.project.provisions[1].label, '1A');
+  assert.equal(state.project.provisions[1].heading.en, 'New conventions');
+  assert.equal(state.project.provisions[1].children[0].id, 's5b');
+  assert.ok(walk([state.project.provisions[2]]).every((n) => n.repealed));
+  assert.equal(canonical(base), original);
 });

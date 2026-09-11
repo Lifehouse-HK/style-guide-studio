@@ -11,7 +11,7 @@ This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements 
 - Current primary phase: **P4, static desktop editor implementation**. P3 qualification remains incomplete and inactive. P0–P2 have implemented portions with outstanding cross-cutting qualification; they are not marked fully complete.
 - Selected PDF path: free Chromium/Puppeteer, fontTools and pypdf after WeasyPrint failed long parallel tests. Each bilingual source produces separate portrait English/Chinese documents and one provision-aligned landscape document with shared tables spanning both columns once.
 - Host tests, module compilation, synthetic headless publication and sampled PDF qualification have passed. Full viewer/CORS/CI checks and the complete fixture matrix remain open; see V09 and the explicit follow-ups below.
-- Active action: U01, desktop structured authoring and browser verification. Remaining P3 checks still gate release; they do not prevent the authorised UI work.
+- Active action: U01, desktop structured authoring and browser verification. Requested typography, icon-font, numbering discovery and Part amendment qualification are recorded in V12–V13. Remaining P3 checks still gate release; they do not prevent the authorised UI work.
 
 Markers: `[ ]` not started; `[~]` active; `[x]` complete with evidence; `[!]` blocked by a referenced question. Only one primary phase may be active.
 
@@ -258,3 +258,11 @@ There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q0
 - Applied Times New Roman to editor text and web publication output; retained literal monospace and the separate PDF font adapter. Replaced Unicode symbol icons throughout with the official MIT Bootstrap Icons font, bundled locally with its licence.
 - `npm run check`, `npm run build:editor`, and three presentation tests passed; build emits WOFF/WOFF2 font assets. Source validation confirmed every selected icon exists in the installed font stylesheet. No new browser/UI or PDF qualification is claimed for this styling change.
 - P4 remains active. Next requested work: make numbering controls directly discoverable for every structural level and qualify Part amendment operations.
+
+
+### V13 — discoverable manual numbering and Part amendment qualification — 2026-09-11
+
+- Every numbered draft level has a clickable canvas label opening Properties, with an explicit Apply number action. Alphanumeric labels such as Part 1A and Schedule 1A preserve stable IDs and source order. New duplicates are rejected atomically. Cross-headings remain unnumbered; certified originals remain read-only.
+- Amendment targets now show structural type/address, including Parts and Schedules. Existing structural insert/omit/substitute engine operations are exposed clearly. A new model story inserts Part 1A, inserts its bilingual child in the next operation, substitutes the Part heading, and omits another Part with descendant tombstones; the principal remains exact.
+- Automated host verification: all **14 focused editor/amendment tests passed**; `npm run check`, `npm run build`, and `npm run build:editor` passed. The label test covers Parts, Schedules and nested provisions, content/identity preservation, duplicate rejection and adopted protection. Static build retains the known chunk-size advisory. No new browser, PDF, remote CI, push or deployment evidence is claimed.
+- P4/U01 remains active. Next acceptance work remains advanced amendment authoring and desktop browser/IME/accessibility qualification described in V11; the requested changes do not close those broader gates.

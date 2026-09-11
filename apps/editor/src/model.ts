@@ -154,3 +154,24 @@ export function findBlock(p: Project, id: string) {
     (b) => b.id === id,
   );
 }
+
+/** Labels are editable draft presentation; permanent identities and source order do not change. */
+export function setProvisionLabel(project: Project, target: string, label: string): Project {
+  if (!/^[A-Za-z0-9]+$/.test(label)) throw new Error('Enter a number such as 1, 1A or 5B.');
+  const existing = new Set(
+    validate(project)
+      .filter((d) => d.code === 'duplicate-label')
+      .map((d) => d.location),
+  );
+  return change(project, (draft) => {
+    const node = walk(draft.provisions).find((n) => n.id === target);
+    if (!node) throw new Error('The selected provision no longer exists.');
+    if (node.kind === 'crossheading') throw new Error('Cross-headings are unnumbered.');
+    node.label = label;
+    const conflict = validate(draft).find(
+      (d) => d.code === 'duplicate-label' && !existing.has(d.location),
+    );
+    if (conflict)
+      throw new Error('That number is already used at this level. Choose a unique manual number.');
+  });
+}

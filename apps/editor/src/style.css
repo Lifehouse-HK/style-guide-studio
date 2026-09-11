@@ -841,3 +841,38 @@ button[aria-label] > .bi:only-child {
 .brand-icon .bi {
   font-size: 18px;
 }
+.number-button {
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  text-align: inherit;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+}
+.number-button:disabled {
+  opacity: 1;
+}
+.number-button:hover:not(:disabled) {
+  background: #edf5f6;
+  box-shadow: 0 1px 0 var(--accent);
+}
+.number-edit-icon.bi {
+  font-size: 0.6em;
+  color: var(--accent);
+  opacity: 0.45;
+}
+.number-button:disabled .number-edit-icon {
+  display: none;
+}
+.number-button:hover .number-edit-icon,
+.number-button:focus-visible .number-edit-icon {
+  opacity: 1;
+}
+
+.number-button[hidden] {
+  display: none;
+}
