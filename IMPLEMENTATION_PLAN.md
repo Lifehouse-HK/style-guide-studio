@@ -6,12 +6,12 @@ This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements 
 
 ## Current status
 
-- The user approved UI implementation after selecting a compact desktop Office-style ribbon with one writing canvas and preview on demand. MIT remains selected; the real corpus repository is deferred.
+- The user has rejected the WYSIWYG/ribbon design. P4 now prioritises the government-source structural corrections and predictable form-based authoring in V15. MIT remains selected; the real corpus repository is deferred.
 - Portable domain, safe project/AKN formats, amendment/reference engines, static presentation, atomic headless publication and Actions proof/check definitions now exist. These are separately consumable modules; implementation does not imply every acceptance gate has passed.
 - Current primary phase: **P4, static desktop editor implementation**. P3 qualification remains incomplete and inactive. P0–P2 have implemented portions with outstanding cross-cutting qualification; they are not marked fully complete.
 - Selected PDF path: free Chromium/Puppeteer, fontTools and pypdf after WeasyPrint failed long parallel tests. Each bilingual source produces separate portrait English/Chinese documents and one provision-aligned landscape document with shared tables spanning both columns once.
 - Host tests, module compilation, synthetic headless publication and sampled PDF qualification have passed. Full viewer/CORS/CI checks and the complete fixture matrix remain open; see V09 and the explicit follow-ups below.
-- Active action: U01, desktop structured authoring and browser verification. Requested typography, icon-font, numbering discovery and Part amendment qualification are recorded in V12–V13. Remaining P3 checks still gate release; they do not prevent the authorised UI work.
+- Active action: U01, structural correction and authoring rebuild as specified in V15. Requested typography, icon-font, numbering discovery and Part amendment qualification are recorded in V12–V13. Remaining P3 checks still gate release; they do not prevent the authorised UI work.
 
 Markers: `[ ]` not started; `[~]` active; `[x]` complete with evidence; `[!]` blocked by a referenced question. Only one primary phase may be active.
 
@@ -272,3 +272,11 @@ There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q0
 
 - Corrected the typography scope following user clarification: system sans-serif for interface text and editing controls, Times New Roman for the document canvas and rendered HTML. Central `--font-ui` and `--font-document` settings keep the distinction explicit; icon and literal fonts remain independent.
 - `npm run build:editor` passed. This CSS-only correction has source/build verification; no new browser or PDF qualification. P4/U01 remains active with the existing acceptance follow-ups.
+
+
+### V15 — government drafting audit and functional editor reset — 2026-09-11
+
+- Read official UK OPC guidance (2024), HK DoJ English/Chinese drafting guides (2012, still officially linked), and UK Lawmaker structure/Schedule documentation. Findings and a context-specific authoring matrix are in `docs/drafting-structure-audit.md`; government practice is distinguished from the proposed church profile.
+- Source audit found generic headings throughout schema/editor/renderer, incorrect Schedule nesting, incorrect Chinese deepest-level naming, and incomplete whole-document repeal authoring/proposed-event handling. These require coordinated model/reference/rendering changes before replacement UI implementation. The earlier generic editor is not accepted or conformant.
+- Added a focused whole-document repeal regression. All eight amendment tests passed via `npx tsx --test tests/amendments.test.ts`. It verifies adopted commencement, historical source preservation, history, invalid-precondition rejection, draft non-effect and rejection of later amendments. No UI, PDF or release qualification is claimed.
+- P4 remains the only active phase. Rebuild acceptance order: shared structural capabilities and compatibility → body/Schedule/reference/rendering fixtures → complete document-repeal workflow → fixed tree/forms and user workflow verification. No cosmetic redesign or product implementation in this audit.

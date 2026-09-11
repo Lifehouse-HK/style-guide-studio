@@ -2,6 +2,8 @@
 
 A structured authoring and publishing system for church style guides, with legislative numbering, formal amendments, bilingual documents and static reference catalogues. Maintained under Lifehouse-HK; software licensed under [MIT](LICENSE).
 
+The current WYSIWYG editor has been rejected and is awaiting a structural rebuild. The [government drafting audit](docs/drafting-structure-audit.md) records model/rendering defects and the required form-based replacement; current features below do not imply drafting conformance.
+
 ## Implemented modules
 
 - **Editor:** local desktop authoring; adopted/withdrawn sources open read-only. See [editor operation and current limits](docs/editor.md).

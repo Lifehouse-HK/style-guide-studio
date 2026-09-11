@@ -2,6 +2,10 @@
 
 The canonical `.sg.json` structure is defined by the strict schemas in `packages/domain/src/index.ts`. Unknown major formats and unknown fields are rejected before replacing any open project. IDs are ASCII identifiers, at most 128 characters, unique in the document. Human labels are manually entered alphanumeric strings; source order is authoritative. No case folding, Unicode normalization or punctuation substitution occurs.
 
+## Conformance limitations
+
+The [government drafting audit](drafting-structure-audit.md) identifies unimplemented corrections: generic headings, Schedule paragraph nesting, deepest-level terminology and whole-document repeal authoring. The table below documents the current projection, not complete drafting-practice conformance.
+
 ## Structure and names
 
 | Project element | AKN projection | English / Traditional Chinese |

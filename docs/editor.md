@@ -1,5 +1,7 @@
 # Desktop editor
 
+**Design superseded:** the user rejected the WYSIWYG/ribbon workflow. The operation notes below describe the existing implementation only. The [drafting structure audit and rebuild contract](drafting-structure-audit.md) governs its replacement with predictable structural forms.
+
 Run `npm run dev`, then open the printed local URL. `npm run build:editor` emits a static application in `dist/editor`, independently of `npm run build` (headless modules). No account, backend or publication deployment is required.
 
 The editor targets desktop windows, with a compact ribbon and a collapsible outline. One structured document is editable; Publication preview temporarily replaces that canvas with HTML from the common presentation engine. It is not a live paginated PDF editor. Publication typography is still provisional.

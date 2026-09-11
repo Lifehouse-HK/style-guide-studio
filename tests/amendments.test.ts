@@ -185,3 +185,30 @@ test('same-day ordered instruments retain distinct intermediate snapshots', asyn
   assert.deepEqual(result.applied, ['first', 'second']);
   assert.notEqual(snapshots[0].revision, snapshots[1].revision);
 });
+
+test('whole-document repeal preserves history and source, takes effect on its instrument date and blocks later amendments', async () => {
+  const p = translationGuide(),
+    original = canonical(p);
+  const initial = await revise(p, [], '2026-01-01');
+  const repeal = await amendment(initial, 'repeal-2027', '2027-01-01', []);
+  repeal.amendment!.events.push({
+    type: 'repeal-document',
+    target: p.id,
+    expectedDate: p.adoption!.effective,
+  });
+  assert.equal((await revise(p, [repeal], '2026-12-31')).state, 'effective');
+  const after = await revise(p, [repeal], '2027-01-01');
+  assert.equal(after.state, 'repealed');
+  assert.equal(canonical(after.project), original);
+  assert.equal(after.history.at(-1)!.type, 'repeal-document');
+  assert.equal(after.history.at(-1)!.target, p.id);
+  const later = await amendment(after, 'amendment-2028', '2028-01-01', []);
+  await assert.rejects(revise(p, [repeal, later], '2028-01-01'), /not effective/);
+  const invalid = structuredClone(repeal);
+  invalid.amendment!.events[0].expectedDate = '2025-01-01';
+  await assert.rejects(revise(p, [invalid], '2027-01-01'), /repeal precondition/);
+  const draft = structuredClone(repeal);
+  draft.stage = 'draft';
+  assert.equal((await revise(p, [draft], '2027-01-01')).state, 'effective');
+  assert.equal(canonical(p), original);
+});

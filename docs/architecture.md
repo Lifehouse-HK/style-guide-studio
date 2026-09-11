@@ -96,6 +96,8 @@ Ordered regions:
 
 Long title describes purpose (e.g. “A Guide to…”); recital text supplies background (“WHEREAS…”); the formula introduces adoption (“BE IT ADOPTED/ENACTED…”). Formula wording is controlled profile content. Metadata, not formula text, determines effect.
 
+The [drafting structure audit](drafting-structure-audit.md) records the government-source findings and required corrections. In particular, heading eligibility is context-specific; a subsection does not receive a structural title. The generic implementation is not a conforming realisation of this hierarchy.
+
 Body hierarchy:
 
 - Optional grouping containers: Parts and subordinate grouping types selected by the nomenclature profile.
