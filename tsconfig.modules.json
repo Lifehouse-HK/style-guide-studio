@@ -1,1 +1,12 @@
-{"extends":"./tsconfig.json","compilerOptions":{"noEmit":false,"allowImportingTsExtensions":true,"rewriteRelativeImportExtensions":true,"declaration":true,"outDir":"build/modules"},"include":["modules"]}
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "declaration": true,
+    "outDir": "build/modules",
+    "rootDir": "modules"
+  },
+  "include": ["modules"]
+}

@@ -1,8 +1,78 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';
-import {newGuide,newNode,pair,insert,move,entries,numbering,guideSchema,enact,textBlock,serialize} from '../modules/document.ts';
-import {specimen} from './fixtures.ts';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  newGuide,
+  newNode,
+  pair,
+  insert,
+  move,
+  entries,
+  numbering,
+  guideSchema,
+  enact,
+  textBlock,
+  serialize,
+} from '../modules/document.ts';
+import { specimen } from './fixtures.ts';
 
-test('headings and grouping prose are absent from the schema at inappropriate levels',()=>{for(const kind of ['subsection','paragraph','subparagraph','subsubparagraph','scheduleSubparagraph'] as const){assert.throws(()=>guideSchema.parse({...newGuide(),nodes:[{...newNode(kind,'1'),heading:pair()}]}));}assert.throws(()=>guideSchema.parse({...newGuide(),nodes:[{...newNode('part','1'),blocks:[]}]}));});
-test('draft insertion keeps any manual numbering and movement preserves whole subtrees',()=>{let g=specimen();const original=serialize(g);const s=newNode('section','0?!');g=insert(g,g.nodes[0].id,0,s);assert.ok(numbering(g.nodes).some(x=>x.code==='number-form'));const ids=entries(g.nodes).map(x=>x.node.id).sort();g=move(g,s.id,'',0);assert.deepEqual(entries(g.nodes).map(x=>x.node.id).sort(),ids);assert.equal(g.nodes[0].label,'0?!');assert.ok(original.includes('Citation'));});
-test('number warnings respect body scope, natural numeric order, inserted labels and Roman depth',()=>{const ns=['5','5A','6','9','10'].map(l=>newNode('section',l));assert.deepEqual(numbering(ns),[]);ns.push(newNode('section','5A'));assert.ok(numbering(ns).some(x=>x.code==='duplicate-number'));assert.ok(numbering(ns).some(x=>x.code==='number-order'));assert.deepEqual(numbering(['i','ia','ii','iv','v'].map(l=>newNode('subparagraph',l))),[]);});
-test('Schedule child ladder differs from body paragraphs; enacted sources cannot move',()=>{let g=specimen();const sch=newNode('schedule','1');g=insert(g,'',1,sch);const sp=newNode('scheduleParagraph','1');g=insert(g,sch.id,0,sp);g=insert(g,sp.id,0,newNode('scheduleSubparagraph','1'));assert.throws(()=>insert(g,sp.id,0,newNode('subparagraph','i')));const e=enact(specimen(),{date:'2026-01-01',effective:'2026-01-01',authority:'Translation Team'});assert.throws(()=>move(e,e.nodes[0].id,'',0),/read-only/);});
+test('headings and grouping prose are absent from the schema at inappropriate levels', () => {
+  for (const kind of [
+    'subsection',
+    'paragraph',
+    'subparagraph',
+    'subsubparagraph',
+    'scheduleSubparagraph',
+  ] as const) {
+    assert.throws(() =>
+      guideSchema.parse({ ...newGuide(), nodes: [{ ...newNode(kind, '1'), heading: pair() }] }),
+    );
+  }
+  assert.throws(() =>
+    guideSchema.parse({ ...newGuide(), nodes: [{ ...newNode('part', '1'), blocks: [] }] }),
+  );
+});
+test('draft insertion keeps any manual numbering and movement preserves whole subtrees', () => {
+  let g = specimen();
+  const original = serialize(g);
+  const s = newNode('section', '0?!');
+  g = insert(g, g.nodes[0].id, 0, s);
+  assert.ok(numbering(g.nodes).some((x) => x.code === 'number-form'));
+  const ids = entries(g.nodes)
+    .map((x) => x.node.id)
+    .sort();
+  g = move(g, s.id, '', 0);
+  assert.deepEqual(
+    entries(g.nodes)
+      .map((x) => x.node.id)
+      .sort(),
+    ids,
+  );
+  assert.equal(g.nodes[0].label, '0?!');
+  assert.ok(original.includes('Citation'));
+});
+test('number warnings respect body scope, natural numeric order, inserted labels and Roman depth', () => {
+  const ns = ['5', '5A', '6', '9', '10'].map((l) => newNode('section', l));
+  assert.deepEqual(numbering(ns), []);
+  ns.push(newNode('section', '5A'));
+  assert.ok(numbering(ns).some((x) => x.code === 'duplicate-number'));
+  assert.ok(numbering(ns).some((x) => x.code === 'number-order'));
+  assert.deepEqual(
+    numbering(['i', 'ia', 'ii', 'iv', 'v'].map((l) => newNode('subparagraph', l))),
+    [],
+  );
+});
+test('Schedule child ladder differs from body paragraphs; enacted sources cannot move', () => {
+  let g = specimen();
+  const sch = newNode('schedule', '1');
+  g = insert(g, '', 1, sch);
+  const sp = newNode('scheduleParagraph', '1');
+  g = insert(g, sch.id, 0, sp);
+  g = insert(g, sp.id, 0, newNode('scheduleSubparagraph', '1'));
+  assert.throws(() => insert(g, sp.id, 0, newNode('subparagraph', 'i')));
+  const e = enact(specimen(), {
+    date: '2026-01-01',
+    effective: '2026-01-01',
+    authority: 'Translation Team',
+  });
+  assert.throws(() => move(e, e.nodes[0].id, '', 0), /read-only/);
+});
