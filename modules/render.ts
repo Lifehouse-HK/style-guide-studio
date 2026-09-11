@@ -31,7 +31,7 @@ export function inline(
   catalogues: Catalogue[] = [],
   pdf = false,
 ): string {
-  const pattern = /\[\[([^\]]+)\]\]|\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`/g;
+  const pattern = /\[\[([^\]]+)\]\]|\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|__([^_]+)__/g;
   let out = '',
     at = 0;
   for (const m of text.matchAll(pattern)) {
@@ -46,7 +46,9 @@ export function inline(
         ? `<strong>${escape(m[2])}</strong>`
         : m[3]
           ? `<em>${escape(m[3])}</em>`
-          : `<code>${escape(m[4])}</code>`;
+          : m[4]
+            ? `<code>${escape(m[4])}</code>`
+            : `<u>${escape(m[5])}</u>`;
     at = m.index! + m[0].length;
   }
   return out + escape(text.slice(at)).replaceAll('\n', '<br>');
@@ -88,8 +90,8 @@ export async function render(
       ? `<div class="shared">${table(b)}</div>`
       : paired((l) =>
           b.type === 'quote'
-            ? `<blockquote>${fmt(b.text[l], l)}</blockquote>`
-            : `<p${b.type === 'note' ? ' class="note"' : ''}>${fmt(b.text[l], l)}</p>`,
+            ? `<blockquote style="text-align:${b.align?.[l] ?? 'left'}">${fmt(b.text[l], l)}</blockquote>`
+            : `<p style="text-align:${b.align?.[l] ?? 'left'}"${b.type === 'note' ? ' class="note"' : ''}>${fmt(b.text[l], l)}</p>`,
         );
   function node(n: Node, quoted = false): string {
     const headingLabel = (l: Language) =>
@@ -114,7 +116,7 @@ export async function render(
       : (numbered
           ? paired(
               (l) =>
-                `<p><span class="number">(${esc(n.label)})</span>${first && first.type === 'text' ? fmt(first.text[l], l) : ''}</p>`,
+                `<p style="text-align:${first && first.type !== 'table' ? (first.align?.[l] ?? 'left') : 'left'}"><span class="number">(${esc(n.label)})</span>${first && first.type === 'text' ? fmt(first.text[l], l) : ''}</p>`,
             )
           : '') +
         (n.blocks ?? [])
@@ -192,7 +194,7 @@ export async function render(
           .filter((e) => hasHeading(e.node.kind))
           .map(
             (e) =>
-              `<li>${paired((l) => `<a href="#${esc(e.node.id)}">${esc(address(e, l))} ${esc(e.node.heading?.[l] ?? '')}</a>`)}</li>`,
+              `<li>${paired((l) => `<a href="#${esc(e.node.id)}">${esc(address(e, l).replace(/^section/, 'Section'))} ${esc(e.node.heading?.[l] ?? '')}</a>`)}</li>`,
           )
           .join('')}</ul></nav>`
       : '';

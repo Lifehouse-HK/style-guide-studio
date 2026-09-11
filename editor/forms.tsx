@@ -218,6 +218,8 @@ function TextField({
   guide,
   catalogues,
   lang,
+  align,
+  onAlign,
 }: {
   label: string;
   value: string;
@@ -225,6 +227,8 @@ function TextField({
   guide: Guide;
   catalogues: Catalogue[];
   lang: 'en' | 'zh';
+  align: 'left' | 'center' | 'right';
+  onAlign: (value: 'left' | 'center' | 'right') => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null),
     [picker, setPicker] = useState(false),
@@ -249,6 +253,37 @@ function TextField({
         <button type="button" aria-label="Italic" onClick={() => put('*', '*')}>
           <Icon name="type-italic" />
         </button>
+        <button type="button" aria-label="Underline" onClick={() => put('__', '__')}>
+          <Icon name="type-underline" />
+        </button>
+        {(['left', 'center', 'right'] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-label={`Align ${value}`}
+            aria-pressed={align === value}
+            onClick={() => onAlign(value)}
+          >
+            <Icon name={`text-${value}`} />
+          </button>
+        ))}
+        {(
+          [
+            ['Hyphen', '-'],
+            ['En dash', '–'],
+            ['Em dash', '—'],
+          ] as const
+        ).map(([name, char]) => (
+          <button
+            key={name}
+            type="button"
+            title={name}
+            aria-label={`Insert ${name.toLowerCase()}`}
+            onClick={() => put(char)}
+          >
+            {char}
+          </button>
+        ))}
         <button type="button" aria-label="Literal text" onClick={() => put('`', '`')}>
           <Icon name="code" />
         </button>
@@ -295,6 +330,7 @@ function TextField({
       )}
       <textarea
         ref={ref}
+        style={{ textAlign: align }}
         aria-label={label}
         rows={7}
         value={value}
@@ -440,6 +476,8 @@ export function NodeFields({
                     label={l === 'en' ? 'English text' : '繁體中文文本'}
                     value={b.text[l]}
                     lang={l}
+                    align={b.align?.[l] ?? 'left'}
+                    onAlign={(align) => updateBlock({ ...b, align: { ...b.align, [l]: align } })}
                     onChange={(text) => updateBlock({ ...b, text: { ...b.text, [l]: text } })}
                     guide={guide}
                     catalogues={catalogues}

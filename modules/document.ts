@@ -40,7 +40,12 @@ export const names: Record<Kind, Pair> = {
 export const isGroup = (k: Kind) => ['part', 'division', 'subdivision'].includes(k);
 export const hasHeading = (k: Kind) =>
   isGroup(k) || ['section', 'schedule', 'appendix', 'scheduleParagraph'].includes(k);
-export type TextBlock = { id: string; type: 'text' | 'quote' | 'note'; text: Pair };
+export type TextBlock = {
+  id: string;
+  type: 'text' | 'quote' | 'note';
+  text: Pair;
+  align?: Partial<Record<Language, 'left' | 'center' | 'right'>>;
+};
 export type Table = {
   id: string;
   type: 'table';
@@ -61,7 +66,18 @@ export type Node = {
 };
 const blockSchema = z.union([
   z
-    .object({ id: z.string().min(1), type: z.enum(['text', 'quote', 'note']), text: paired })
+    .object({
+      id: z.string().min(1),
+      type: z.enum(['text', 'quote', 'note']),
+      text: paired,
+      align: z
+        .object({
+          en: z.enum(['left', 'center', 'right']).optional(),
+          zh: z.enum(['left', 'center', 'right']).optional(),
+        })
+        .strict()
+        .optional(),
+    })
     .strict(),
   z
     .object({
@@ -336,7 +352,11 @@ export function issues(g: Guide): Issue[] {
       add(n.id, 'structure', 'This level cannot occur at this location.');
     if (!n.repealed) {
       for (const l of languages(g)) {
-        if (hasHeading(n.kind) && n.kind !== 'scheduleParagraph' && !n.heading?.[l].trim())
+        if (
+          hasHeading(n.kind) &&
+          !['scheduleParagraph', 'schedule'].includes(n.kind) &&
+          !n.heading?.[l].trim()
+        )
           add(n.id, 'heading', `${l === 'en' ? 'English' : 'Chinese'} heading is required.`);
         if (!isGroup(n.kind) && !n.children.length && !n.blocks?.length)
           add(n.id, 'empty', 'Add text, a table or child provisions.');

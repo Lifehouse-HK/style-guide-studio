@@ -22,7 +22,7 @@ This constrained generator does not support relocating, renumbering, splitting o
 
 ## References and outputs
 
-Writers insert `[[#permanent-id]]` for local references or `[[document-id#permanent-id]]` for external references, normally through the picker. `**bold**`, `*italic*` and backtick literal spans provide basic formatting. All output text is escaped.
+Writers insert `[[#permanent-id]]` for local references or `[[document-id#permanent-id]]` for external references, normally through the picker. `**bold**`, `*italic*`, `__underline__` and backtick literal spans provide basic formatting. All output text is escaped. Text blocks optionally store left/center/right alignment separately by language; omitted alignment means left. Schedule headings are optional; this does not relax required section headings.
 
 The editor fetches only `<base URL>/references.json`, with omitted credentials and a timeout. The host must permit cross-origin requests from the editor. `lifehouse-references/1` contains a documents array; each document carries `id`, paired `titles`, `status`, a `revision` identifier, language-to-URL `html` and `pdf` maps, and `targets` with permanent `id`, paired `label` and `repealed`. See the executable schema in `modules/references.ts`. `publicCatalogue` builds an entry from an enacted source; a future publication build will aggregate these. Drafts are not published by this API.
 

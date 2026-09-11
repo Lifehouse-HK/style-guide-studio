@@ -42,3 +42,21 @@ test('external references select HTML/PDF and use the document-scoped alias cons
   assert.match(resolve(key, g, 'en', [c]).label, /2026 Guide/);
   assert.doesNotMatch(inline('**<b>**', g, 'en'), /<b>/);
 });
+
+test('underlining and per-language alignment render on unheaded first blocks', async () => {
+  const g = specimen();
+  const sub = newNode('subsection', '1');
+  sub.blocks = [
+    {
+      id: 'aligned',
+      type: 'text',
+      text: pair('__English__ — words', '__中文__'),
+      align: { en: 'center', zh: 'right' },
+    },
+  ];
+  g.nodes[0].children[0].children = [sub];
+  const html = await render(g, { layout: 'parallel' });
+  assert.match(html, /text-align:center[^>]*><span class="number">\(1\)<\/span><u>English<\/u>/);
+  assert.match(html, /text-align:right[^>]*><span class="number">\(1\)<\/span><u>中文<\/u>/);
+  assert.match(html, />Section 1 /);
+});

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   newGuide,
+  issues,
   newNode,
   pair,
   insert,
@@ -75,4 +76,20 @@ test('Schedule child ladder differs from body paragraphs; enacted sources cannot
     authority: 'Translation Team',
   });
   assert.throws(() => move(e, e.nodes[0].id, '', 0), /read-only/);
+});
+
+test('Schedule headings are optional without relaxing section headings', () => {
+  const g = specimen();
+  const schedule = newNode('schedule', '1');
+  schedule.blocks = [{ id: 'scheduletext', type: 'text', text: pair('Words', '字句') }];
+  g.nodes.push(schedule);
+  assert.equal(
+    issues(g).some((i) => i.target === schedule.id && i.code === 'heading'),
+    false,
+  );
+  g.nodes[0].children[0].heading = pair();
+  assert.equal(
+    issues(g).some((i) => i.target === g.nodes[0].children[0].id && i.code === 'heading'),
+    true,
+  );
 });
