@@ -19,6 +19,10 @@ await writeFile('work/feedback/source.json', JSON.stringify(g));
 const browser = await puppeteer.launch();
 try {
   const page = await browser.newPage();
+  page.on('dialog', async (d) => {
+    console.log('Dialog', d.type());
+    await d.accept();
+  });
   await page.setViewport({ width: 1280, height: 800 });
   await page.goto('http://127.0.0.1:5173/');
   const click = async (text: string) => {

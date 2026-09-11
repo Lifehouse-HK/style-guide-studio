@@ -649,7 +649,12 @@ function App() {
               </button>
             </div>
             {proof ? (
-              <iframe id="proof-frame" title="Read-only publication proof" srcDoc={proof} />
+              <iframe
+                key={proof}
+                id="proof-frame"
+                title="Read-only publication proof"
+                srcDoc={proof}
+              />
             ) : (
               <p>Generate a proof by completing the source and action settings above.</p>
             )}
@@ -2325,6 +2330,7 @@ function RevisionWorkspace({
       </div>
       {html && (
         <iframe
+          key={html}
           title="Revised text proof"
           srcDoc={html}
           style={{ width: '100%', height: '65vh', border: '1px solid #becad2' }}
