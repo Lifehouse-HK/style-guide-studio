@@ -6,12 +6,14 @@ Maintained under Lifehouse-HK. This repository currently contains **design docum
 
 - [Architecture](docs/architecture.md): tool-neutral system definition and behavioural contracts.
 - [Technology discussion](docs/technology-decisions.md): choices to settle before implementation.
-- [Implementation plan](IMPLEMENTATION_PLAN.md): current progress, phase dependencies, acceptance criteria, open questions and validation evidence.
+- [Implementation plan](IMPLEMENTATION_PLAN.md): the full P0–P5 backlog, action dependencies, acceptance criteria, fixture catalogue, architecture traceability, open questions and dated validation evidence.
 - [Repository guide](AGENTS.md): contributor workflow and commit requirements.
 
 ## Current status and contributing
 
 As of 2026-09-11, the user has approved the architecture. Every required component and the complete product must be usable free of charge; technology discussion remains the active phase. GitHub Actions is approved for generation and deployment, with a completely static publication site. Application implementation is paused until the remaining technology discussion is resolved. See the implementation plan for the next action and outstanding decisions.
+
+The complete implementation is now planned. Planning completion does not mark any editor, engine or rendering feature implemented. The next steps are D01 technology decisions, D02 document/nomenclature mapping, and the early PDF/persistence qualification actions D03/D04 before the main implementation phases.
 
 Read `AGENTS.md` and the relevant plan entries before editing. Make focused commits using `<type>(<scope>): <imperative description>` and record applicable validation. There are no application build/test commands or CI pipelines yet. For documentation/configuration changes, inspect affected local links, verify ignore rules when changed, and run `git diff --cached --check` before committing.
 

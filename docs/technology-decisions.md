@@ -49,11 +49,12 @@ Scheduled rebuilds can apply newly effective amendments, but scheduled Actions m
 
 ## What follows agreement
 
-1. Record decisions and the verified AKN/nomenclature mappings.
-2. Define portable schema fixtures and conformance expectations.
-3. Implement the domain/engine contracts and format adapters independently of UI.
-4. Build the editor against those contracts and the common preview presentation.
-5. Integrate and verify the selected PDF adapter.
+1. Record decisions and the verified AKN/nomenclature mappings (D01/D02).
+2. Qualify free PDF output and canonical persistence early, and set verification budgets (D03/D04).
+3. Implement the domain, persistence, reference and amendment engine (P1/P2).
+4. Build common web/print presentation, the production PDF adapter and headless Actions contracts (P3).
+5. Build the static editor against the same engine/presentation contracts (P4).
+6. Complete integrated conformance, documentation and release-readiness verification (P5).
 
 This ordering is an implementation sequence, not a reduced semantic scope. The architecture's full behavioural contract remains the target.
 
