@@ -1,6 +1,6 @@
 # Authoring profile, enactment formula and generated amendments
 
-Recorded: 2026-09-12. Status: user decisions and rebuild requirements; implementation is pending. This supersedes conflicting proposals in the 2026-09-11 drafting audit and earlier ribbon/editor documentation.
+Recorded: 2026-09-12. Status: user decisions implemented within the fresh profile; see IMPLEMENTATION_PLAN.md for verification and remaining limits. This supersedes conflicting proposals in the 2026-09-11 drafting audit and earlier ribbon/editor documentation.
 
 ## Enacting authority and default formula
 
@@ -16,13 +16,13 @@ Traditional Chinese:
 
 Prefill new principal Guides and generated amendment instruments with these respective texts. Allow explicit editing while drafting for contingency. Once enacted, the principal's enacting formula is not an amendment target. An amendment instrument has its own formula; editing that draft formula does not modify the principal's formula. Whole-document repeal remains possible.
 
-Use enact/enacted/enactment in product language, not adopt/adopted/adoption. Existing stored `adopted`/`adoption` fields require an explicit compatibility/migration strategy; this documentation does not claim the code has been renamed. Removing the authentication document component does not remove the enactment authority/date, effective date or source-certification metadata needed for reliable publication.
+Use enact/enacted/enactment in product language, not adopt/adopted/adoption. The restart uses enacted/enactment throughout its new source format and does not import discarded formats. Removing the authentication document component does not remove the enactment authority/date, effective date or source-certification metadata needed for reliable publication.
 
 ## Selected structures and components
 
 Remove Chapter (B) and Cross-heading (E) from new authoring. Retain Part / 部, Division / 分部, Subdivision / 次分部, Section or draft Clause / 條, Subsection / 款, Paragraph / 段, Subparagraph / 節, exceptional Sub-subparagraph / 分節, Schedule / 附表, and informative Appendix / 附錄. Groupings are optional; the permitted grouping path is Part → Division → Subdivision, followed by sections. Do not require every intermediate grouping in short documents.
 
-Section/clause headings and grouping/Schedule/Appendix headings remain; subordinate body provisions have no structural heading field. Schedule provision structure stays context-specific as described in the audit. Preserve existing removed structures on import and diagnose them for explicit draft repair; never silently delete or relabel source material.
+Section/clause headings and grouping/Schedule/Appendix headings remain; subordinate body provisions have no structural heading field. Schedule provision structure stays context-specific as described in the audit. The subsequent restart decision supersedes compatibility with removed structures: old-format imports are rejected, never silently converted.
 
 Remove Authentication / adoption record (R) and Explanatory memorandum/note (S) as document components. Retain paired formal titles (M), long title (N), preamble/recitals (O), enacting formula (P) and generated contents (Q). T, generated amendment history, is explained below; the user has requested explanation and has not yet expressly decided to retain or remove its visible presentation.
 
@@ -64,4 +64,4 @@ Underlying provenance is necessary for reliable revision and reference handling 
 
 ## Implementation boundary
 
-This is a recorded design decision, not completed functionality. Required work spans domain validation, draft editing commands, schema compatibility, reference ordering, amendment generation, enactment/event handling, rendering and the replacement forms. Do not apply these changes as isolated additions to the rejected WYSIWYG canvas. P4 is still the active phase.
+The 2026-09-12 restart implements a new domain, action engine, renderer and fixed-form editor. Old phase identifiers and compatibility proposals are superseded by the fresh implementation plan. The drafting audit remains historical research, not evidence that every government drafting practice is supported.
