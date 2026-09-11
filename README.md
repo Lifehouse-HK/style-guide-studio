@@ -11,7 +11,7 @@ Maintained under Lifehouse-HK. This repository currently contains **design docum
 
 ## Current status and contributing
 
-As of 2026-09-11, the user has approved the architecture. Every required component and the complete product must be usable free of charge; technology discussion remains the active phase. Application implementation is paused until that discussion is resolved. See the implementation plan for the next action and outstanding decisions.
+As of 2026-09-11, the user has approved the architecture. Every required component and the complete product must be usable free of charge; technology discussion remains the active phase. GitHub Actions is approved for generation and deployment, with a completely static publication site. Application implementation is paused until the remaining technology discussion is resolved. See the implementation plan for the next action and outstanding decisions.
 
 Read `AGENTS.md` and the relevant plan entries before editing. Make focused commits using `<type>(<scope>): <imperative description>` and record applicable validation. There are no application build/test commands or CI pipelines yet. For documentation/configuration changes, inspect affected local links, verify ignore rules when changed, and run `git diff --cached --check` before committing.
 

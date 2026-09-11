@@ -8,7 +8,8 @@ This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements 
 
 - Repository contains documentation and repository configuration only; no product implementation, build commands, automated product tests or CI pipelines exist.
 - Architecture proposal was committed in `13646ef`. That commit predates the repository's conventional-commit rule; preserve its published history and follow the rule for new commits.
-- Architecture approved by the user on 2026-09-11. All required components and the final product must have a comfortable free-of-charge path; Prince is no longer a candidate. Specific technologies remain unapproved. Evidence: V03.
+- Architecture approved by the user on 2026-09-11. All required components and the final product must have a comfortable free-of-charge path; Prince is no longer a candidate. The remaining software stack is unapproved. Evidence: V03.
+- GitHub Actions is approved for generation/deployment, with a completely static publication site; local publishing remains a fallback, not an author requirement. Evidence: V04.
 - Current phase: P0, design and technology discussion. No implementation phase is active.
 - Completed repository action: R01, adopt the contributor workflow and ignore local clutter. Evidence: V01 below.
 - Next action: D01, discuss and record technology decisions with the user. The earlier instruction to discuss technologies before application code remains in force.
@@ -41,7 +42,7 @@ These are dependencies and acceptance gates, not authorisation to bypass the tec
 | --- | --- | --- |
 | Q01 | Canonical AKN was proposed earlier; bilingual shared objects, operations and dependency locks need a complete project container. Affects D01/D02/M01. | AKN plus manifest/resources, or a neutral canonical project format with validated AKN interchange? |
 | Q02 | Browser/headless reuse and structured editing were proposed, not approved. Affects D01 and implementation phases. | Confirm implementation language, editor foundation, UI framework and validating runtime. |
-| Q03 | Cost resolved on 2026-09-11: all required functionality must be free. WeasyPrint is the leading candidate, not a verified choice. Affects D01/R02. | Decide whether a local PDF helper is acceptable or browser-only export is required; verify renderer quality, performance and links within the free constraint. |
+| Q03 | Cost resolved on 2026-09-11: all required functionality must be free. WeasyPrint is the leading candidate, not a verified choice. Affects D01/R02. | Publication execution resolved: GitHub Actions; a browser-only final renderer and local author helper are unnecessary. Remaining work: verify the free renderer and define explicit asynchronous proof submission. Future repository visibility and deployment host are not selected. |
 | Q04 | Public visibility does not grant a software licence. Affects D01/V02 and distribution readiness. | Select the software licence; publication-content rights remain separate. |
 
 Nomenclature and schema verification in D02 are research obligations, not extra permission gates. Record ambiguities and bring only material policy choices to the user.
@@ -63,6 +64,13 @@ Nomenclature and schema verification in D02 are research obligations, not extra 
 - Documentation research: reviewed official WeasyPrint licence/capability documentation, Tiptap core licence and pypdf annotation documentation. WeasyPrint remains a candidate; no PDF output, performance benchmark or viewer check was performed.
 - Local documentation checks: relative Markdown file links resolved successfully; `git diff --cached --name-status` showed only README, PLAN and the two design documents; `git diff --cached --check` passed.
 - No product tests or CI pipelines exist. Ignore rules were unchanged and their earlier validation was not repeated. No product implementation or push is part of this action.
+
+### V04 — static publication through GitHub Actions — 2026-09-11
+
+- User approved Actions-based website generation/deployment and a fully static deployed site. Recorded the runtime decision without creating the deferred document repository or implementing workflows.
+- Reviewed official GitHub Actions billing and scheduling documentation. Standard public-repository hosted runners can be free; paid larger runners and storage overages are not assumed free. Scheduled execution is not an exact-time guarantee.
+- Relative Markdown links and `git diff --cached --check` passed; staged review included only README, PLAN and architecture/technology documents.
+- No workflow, PDF, UI or product test was executed; none is implemented. Existing untracked `.idea/` was preserved. No push in this action.
 
 ## Follow-ups
 
