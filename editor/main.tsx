@@ -177,14 +177,22 @@ function App() {
         if (!base) throw Error('Load the principal Guide first.');
         const r = await proposed(base, doc);
         return render(r.guide, {
-          layout,
+          layout: doc.mode === 'parallel' ? layout : doc.mode,
           proposed: true,
           revision: r,
           catalogues: workspace.catalogues,
           iframe: true,
         });
       }
-      return render(doc, { layout, catalogues: workspace.catalogues, iframe: true }, base);
+      return render(
+        doc,
+        {
+          layout: doc.mode === 'parallel' ? layout : doc.mode,
+          catalogues: workspace.catalogues,
+          iframe: true,
+        },
+        base,
+      );
     };
     run()
       .then((html) => {
@@ -408,14 +416,30 @@ function App() {
             </aside>
             <section className="detail">
               <div className="breadcrumb">
-                {doc.type === 'amendment' ? 'Amendment instrument' : 'Principal Guide'} /{' '}
-                {chosen
-                  ? address(chosen)
-                  : selected === 'details'
-                    ? 'Titles & settings'
-                    : selected === 'opening'
-                      ? 'Long title & preamble'
-                      : 'Enacting formula'}
+                <button onClick={() => navigate('details')}>
+                  {doc.type === 'amendment' ? 'Amendment instrument' : 'Principal Guide'}
+                </button>
+                {chosen ? (
+                  [...chosen.ancestors, chosen.node].map((n) => (
+                    <span key={n.id}>
+                      {' '}
+                      /{' '}
+                      <button onClick={() => navigate(n.id)}>
+                        {names[n.kind].en} {n.label}
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <span>
+                    {' '}
+                    /{' '}
+                    {selected === 'details'
+                      ? 'Titles & settings'
+                      : selected === 'opening'
+                        ? 'Long title & preamble'
+                        : 'Enacting formula'}
+                  </span>
+                )}
               </div>
               {['details', 'opening', 'formula'].includes(selected) ? (
                 <DocumentForm
@@ -499,9 +523,31 @@ function App() {
                       <tr key={i}>
                         <td>{d.severity}</td>
                         <td>
-                          <button onClick={() => navigate(d.target)}>
-                            {all.find((e) => e.node.id === d.target)?.node.label ??
-                              'Document details'}
+                          <button
+                            onClick={() =>
+                              navigate(
+                                all.find((e) => e.node.blocks?.some((b) => b.id === d.target))?.node
+                                  .id ?? d.target,
+                              )
+                            }
+                          >
+                            {(() => {
+                              const e = all.find(
+                                (e) =>
+                                  e.node.id === d.target ||
+                                  e.node.blocks?.some((b) => b.id === d.target),
+                              );
+                              return e
+                                ? [...e.ancestors, e.node]
+                                    .map((n) => `${names[n.kind].en} ${n.label}`)
+                                    .join(' / ') +
+                                    (e.node.heading?.en ? ` — ${e.node.heading.en}` : '')
+                                : ({
+                                    details: 'Titles & settings',
+                                    opening: 'Long title & preamble',
+                                    formula: 'Enacting formula',
+                                  }[d.target] ?? 'Document details');
+                            })()}
                           </button>
                         </td>
                         <td>{d.message}</td>
@@ -557,15 +603,19 @@ function App() {
           <section className="proof">
             <div className="toolbar">
               <strong>Read-only proof</strong>
-              <select
-                aria-label="Proof language"
-                value={layout}
-                onChange={(e) => setLayout(e.target.value as Layout)}
-              >
-                <option value="en">English</option>
-                <option value="zh">繁體中文</option>
-                {doc.mode === 'parallel' && <option value="parallel">Parallel · landscape</option>}
-              </select>
+              {doc.mode === 'parallel' && (
+                <select
+                  aria-label="Proof language"
+                  value={layout}
+                  onChange={(e) => setLayout(e.target.value as Layout)}
+                >
+                  <option value="en">English</option>
+                  <option value="zh">繁體中文</option>
+                  {doc.mode === 'parallel' && (
+                    <option value="parallel">Parallel · landscape</option>
+                  )}
+                </select>
+              )}
               {doc.type === 'amendment' && (
                 <select
                   aria-label="Proof document"
@@ -1138,7 +1188,7 @@ function NodeEditor({
               <tr>
                 <th>Level</th>
                 <th>Number</th>
-                <th>Heading</th>
+                <th>Heading / text preview</th>
                 <th />
               </tr>
             </thead>
@@ -1147,7 +1197,18 @@ function NodeEditor({
                 <tr key={c.id}>
                   <td>{names[c.kind].en}</td>
                   <td>{c.label}</td>
-                  <td>{c.heading?.en ?? '—'}</td>
+                  <td>
+                    {(
+                      c.heading?.[guide.mode === 'zh' ? 'zh' : 'en'] ||
+                      (c.blocks ?? [])
+                        .map((b) =>
+                          b.type === 'table'
+                            ? b.caption[guide.mode === 'zh' ? 'zh' : 'en']
+                            : b.text[guide.mode === 'zh' ? 'zh' : 'en'],
+                        )
+                        .join(' ')
+                    ).slice(0, 120) || 'No text yet'}
+                  </td>
                   <td>
                     <button onClick={() => onSelect(c.id)}>Open</button>
                   </td>
@@ -1996,7 +2057,7 @@ function AmendmentChecks({ base, amendment: a }: { base?: Guide; amendment: Amen
         const r = await proposed(base, a);
         const warnings = numbering(cs.map((c) => ({ ...newNode('section', c.label), id: c.id })));
         setResult(
-          `Action sequence and generated clauses are consistent. ${warnings.length} numbering warnings. ${r.repealed ? 'Proposed result: whole Guide repealed.' : `${issues(r.guide).length} issues in the proposed Guide.`}\n${warnings.map((w) => `${cs.find((c) => c.id === w.target)?.label ?? w.target}: ${w.message}`).join('\n')}\n${(r.repealed ? [] : issues(r.guide)).map((w) => `${entries(r.guide.nodes).find((e) => e.node.id === w.target)?.node.label ?? 'Document'}: ${w.message}`).join('\n')}`,
+          `Action sequence and generated clauses are consistent. ${warnings.length} numbering warnings. ${r.repealed ? 'Proposed result: whole Guide repealed.' : `${issues(r.guide).length} issues in the proposed Guide.`}\n${warnings.map((w) => `${cs.find((c) => c.id === w.target)?.label ?? w.target}: ${w.message}`).join('\n')}\n${(r.repealed ? [] : issues(r.guide)).map((w) => `${((entry) => (entry ? address(entry) : undefined))(entries(r.guide.nodes).find((e) => e.node.id === w.target)) ?? 'Document'}: ${w.message}`).join('\n')}`,
         );
       })
       .catch((e) => setResult(e.message));
@@ -2235,15 +2296,17 @@ function RevisionWorkspace({
       </table>
       {error && <p className="error">{error}</p>}
       <div className="toolbar">
-        <select
-          aria-label="Revision language"
-          value={layout}
-          onChange={(e) => setLayout(e.target.value as Layout)}
-        >
-          <option value="en">English</option>
-          <option value="zh">繁體中文</option>
-          {guide.mode === 'parallel' && <option value="parallel">Parallel</option>}
-        </select>
+        {guide.mode === 'parallel' && (
+          <select
+            aria-label="Revision language"
+            value={layout}
+            onChange={(e) => setLayout(e.target.value as Layout)}
+          >
+            <option value="en">English</option>
+            <option value="zh">繁體中文</option>
+            {guide.mode === 'parallel' && <option value="parallel">Parallel</option>}
+          </select>
+        )}
         <button
           disabled={!result || result.repealed || date < (guide.enactment?.effective ?? '')}
           onClick={() => onAmend(result!.guide)}

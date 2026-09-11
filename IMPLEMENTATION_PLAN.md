@@ -29,3 +29,9 @@ No implementation phase is active. Next ready action is user evaluation of the r
 - XML import is exact source-profile round-trip only. Inline formatting markers remain literal in the legal XML projection; generic Akoma Ntoso semantic interchange is not claimed.
 - Publication authority/certification, repository review, website build/deploy and catalogue aggregation belong to the deferred corpus tooling. An enactment record is not a digital signature.
 - No free-form exceptional amendment instructions, relocation, renumbering, splitting/merging of enacted identities or amendment of amending instruments. These require deliberate domain design rather than editable generated prose.
+
+## Editor feedback — 2026-09-12
+
+- [x] F1: Fix viewport scrolling, text excerpts, breadcrumb/checks navigation and language-appropriate proof controls; add underline, alignment, dash insertion and optional Schedule headings.
+- Domain/render tests added for optional Schedule headings and aligned/underlined unheaded provisions. Fresh suite: 15 passed.
+- Fresh type check, build and all 15 tests passed. Existing browser workflow passed. `tools/check-editor-feedback.ts` passed viewport-height checks at 1280×800 and 1280×650, child preview, clickable breadcrumbs/checks, formatting controls and bilingual/monolingual proof controls. Proof screenshot inspected. No PDF pagination changes; alignment is verified through the shared HTML/PDF renderer.

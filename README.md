@@ -4,7 +4,7 @@ A fresh implementation for Lifehouse Hong Kong’s 夢幻團隊翻譯團隊, res
 
 ## Editor
 
-The desktop editor uses a structure tree and one fixed editing form. Add and Move dialogs describe the destination; Save and Discard control provision edits. Only eligible structural levels have headings; Schedule headings are optional. Manual numbers, including `1A`, remain editable; Checks reports invalid, duplicate and descending labels without blocking draft saves. Enactment requires complete content and unambiguous public addresses.
+The desktop editor uses a fixed viewport with independently scrolling content panes, a structure tree and one editing form. Breadcrumbs and full provision paths in Checks open the relevant item; unheaded child rows show text excerpts. Add and Move dialogs describe the destination; Save and Discard control provision edits. Only eligible structural levels have headings; Schedule headings are optional. Manual numbers, including `1A`, remain editable; Checks reports invalid, duplicate and descending labels without blocking draft saves. Enactment requires complete content and unambiguous public addresses.
 
 Both formal titles are required. Content can be English, Traditional Chinese or bilingual. Long title, optional paragraph/numbered preamble and contingency-editable enacting formula have separate forms. Ordinary tables have optional automatic row numbers; rows are never reference targets. The UI uses sans-serif and locally bundled Bootstrap Icons. Document proofs request Times New Roman, with system serif fallbacks for Chinese. Text blocks support bold, italic, underline and per-language left/centre/right alignment, with quick hyphen, en dash and em dash buttons.
 
@@ -28,7 +28,7 @@ npx tsx tools/check-editor.ts
 npm run pdf -- /path/to/project.json /path/to/output
 ```
 
-`dist/` is the static editor. `build/modules/` contains independent JavaScript modules and declarations, without React dependencies. Bilingual PDF export produces `en.pdf`, `zh.pdf` (portrait) and `parallel.pdf` (landscape, aligned provisions and one shared table). Browser Print is also available in Proof. Typography and pagination rules are centralised in `modules/render.ts`.
+`dist/` is the static editor. `build/modules/` contains independent JavaScript modules and declarations, without React dependencies. Bilingual PDF export produces `en.pdf`, `zh.pdf` (portrait) and `parallel.pdf` (landscape, aligned provisions and one shared table). Browser Print is also available in Proof. Bilingual proofs offer English, Chinese and parallel views; monolingual proofs use their document language without a selector. Typography and pagination rules are centralised in `modules/render.ts`.
 
 ## Architecture and boundaries
 
