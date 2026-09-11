@@ -4,7 +4,7 @@ Status: architecture approved by the user on 2026-09-11; technology selection re
 
 Updated: 2026-09-11.
 
-This document defines behaviour and boundaries independently of programming languages, editor frameworks, storage libraries, hosting services and PDF products. Standards named here are document/interchange contracts, not technology selections. No application implementation accompanies this architecture.
+This document defines behaviour and boundaries independently of programming languages, editor frameworks, storage libraries, hosting services and PDF products. Standards named here are document/interchange contracts, not technology selections. Implementation progress is tracked separately in the implementation plan.
 
 ## 1. Purpose and repository boundary
 
@@ -252,7 +252,7 @@ The publication and PDF adapters run headlessly in GitHub Actions, as approved o
 
 Internal PDF links target named destinations; online external references use hosted PDFs and destination hints. Offline bundles may use relative PDF targets; a combined handbook makes inter-document references internal. Cross-file destination support is viewer-dependent and must be tested and documented. A destination/page map can support page-based fallbacks. No guarantee of arbitrary viewer behaviour is made.
 
-Parallel print output aligns at provision boundaries and permits sensible continuation over pages; shared tables can span full width. Separate English/Chinese PDFs include identical shared tables. Font embedding, Chinese glyph coverage, text extraction and screen-reader order are part of verification.
+Every bilingual source generates three publication variants: separate English and Traditional Chinese documents, plus a landscape parallel document. Parallel print output aligns each provision side by side (English left, Chinese right) and permits continuation over pages; shared tables span both columns once. The two separate PDFs use portrait orientation and include identical shared tables. Font embedding, Chinese glyph coverage, text extraction and screen-reader order are part of verification.
 
 The future publication runner supplies certified sources, dependency snapshots and explicit as-of date, builds HTML/PDF/catalogue together, validates destinations, then makes immutable resources available before updating current pointers. It must rebuild current views when scheduled amendments become effective; a static host does not execute commencement by itself. Failure preserves the last successful publication. Reader pages contain ordinary links and remain usable without the editor or reference API.
 

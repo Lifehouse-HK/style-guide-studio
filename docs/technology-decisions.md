@@ -1,3 +1,9 @@
+# Current implementation decisions — 2026-09-11
+
+The user authorised implementation, selected MIT and then asked to stop before constructing the editor UI for design discussion. Runtime/storage choices are recorded in ADR 001. The implemented free PDF adapter now uses Chromium/Puppeteer, fontTools and pypdf after WeasyPrint failed long parallel qualification. See [PDF evidence](pdf-qualification.md) and [headless operation](publishing.md). Bilingual publication produces two separate portrait documents and one provision-aligned landscape document. No UI or real corpus repository has been created.
+
+The earlier discussion below is retained as historical rationale; its candidate and “not yet run” statements are superseded by the dated implementation evidence.
+
 # Technology discussion before implementation
 
 Status: approved constraints/runtime decisions and remaining technology recommendations. No application code should be written until this discussion is resolved.

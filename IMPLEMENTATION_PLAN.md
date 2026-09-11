@@ -6,11 +6,12 @@ This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements 
 
 ## Current status
 
-- Architecture approved; user authorised implementation on 2026-09-11, then set the stopping boundary immediately before editor UI construction for design discussion.
-- Current primary phase: P0 qualification. Domain types are reusable qualification scaffolding; this does not mark P1 complete or bypass its remaining gates.
-- D01 runtime/storage choices recorded in ADR 001 under implementation delegation. MIT explicitly selected by the user. No paid required component.
-- Portable domain source, four host tests and strict TypeScript checks exist. Evidence: V06.
-- Active/next actions: D02 mapping, D03 PDF qualification and D04 portable format qualification. No UI construction, corpus repository or production deployment.
+- The user authorised implementation, selected MIT, then requested a stop before editor UI construction for design discussion. No editor UI or real corpus repository has been created.
+- Portable domain, safe project/AKN formats, amendment/reference engines, static presentation, atomic headless publication and Actions proof/check definitions now exist. These are separately consumable modules; implementation does not imply every acceptance gate has passed.
+- Current primary phase: **P3, presentation and headless publication qualification**, paused at the requested design handoff. P0–P2 have implemented portions with outstanding cross-cutting qualification; they are not marked fully complete.
+- Selected PDF path: free Chromium/Puppeteer, fontTools and pypdf after WeasyPrint failed long parallel tests. Each bilingual source produces separate portrait English/Chinese documents and one provision-aligned landscape document with shared tables spanning both columns once.
+- Host tests, module compilation, synthetic headless publication and sampled PDF qualification have passed. Full viewer/CORS/CI checks and the complete fixture matrix remain open; see V09 and the explicit follow-ups below.
+- Next user-facing action: discuss editor UI design. Next independent technical work: finish retained headless acceptance checks without constructing the UI.
 
 Markers: `[ ]` not started; `[~]` active; `[x]` complete with evidence; `[!]` blocked by a referenced question. Only one primary phase may be active.
 
@@ -27,10 +28,10 @@ These are dependencies and acceptance gates. The user has now authorised impleme
 
 | Phase | Status | Dependency | Action | Acceptance criteria |
 | --- | --- | --- | --- | --- |
-| P0: design and decisions | [~] | None | D01: resolve implementation choices Q01–Q03 and record approvals; D02: verify the AKN and UK/HK nomenclature mappings; D03: qualify the free PDF path | P0-AC1: technology/storage choices recorded as decisions, not assumptions; P0-AC2: every supported document feature and citation level has a verified mapping and identified fixtures; Q04 gates distribution in P5, not independent design work |
+| P0: design and decisions | [ ] | None | D01: resolve implementation choices Q01–Q03 and record approvals; D02: verify the AKN and UK/HK nomenclature mappings; D03: qualify the free PDF path | P0-AC1: technology/storage choices recorded as decisions, not assumptions; P0-AC2: every supported document feature and citation level has a verified mapping and identified fixtures; Q04 gates distribution in P5, not independent design work |
 | P1: domain and persistence | [ ] | P0 | M01: implement the portable model, validation, persistence and migrations | P1-AC1: ARCH-18.1–5 and 18.11 pass for the domain/format layer; P1-AC2: round trips preserve shared content, identities and Unicode; no editor-only save format |
 | P2: references and amendments | [ ] | P1 | E01: implement catalogue resolution, interpretation names and transactional amendment/revision construction | P2-AC1: ARCH-18.5–10 pass at engine level; P2-AC2: conflicting, draft and future operations cannot silently affect effective text; whole-table and bilingual rules enforced |
-| P3: presentation | [ ] | P2 | R02: implement web/print projections, PDF adapter and static catalogue output | P3-AC1: ARCH-18.10, 18.12–14 pass for rendered artifacts and headless use; P3-AC2: bilingual pagination and link destinations inspected in recorded viewers; unsupported behaviour documented |
+| P3: presentation | [~] | P2 | R02: implement web/print projections, PDF adapter and static catalogue output | P3-AC1: ARCH-18.10, 18.12–14 pass for rendered artifacts and headless use; P3-AC2: bilingual pagination and link destinations inspected in recorded viewers; unsupported behaviour documented |
 | P4: static editor | [ ] | P3 | U01: implement structured authoring, save/recovery, external references, amendment review and common-engine previews | P4-AC1: relevant ARCH-18.1–14 pass through actual UI workflows; P4-AC2: Chinese IME, keyboard/screen-reader access and shared-table editing verified separately from model tests |
 | P5: integrated readiness | [ ] | P4 | V02: verify the complete acceptance contract and document operation/release procedures | P5-AC1: ARCH-18.1–14 have dated evidence; P5-AC2: configured checks/CI pass, limitations and licence recorded; P5-AC3: release readiness is explicitly assessed, not inferred from unit tests |
 
@@ -40,7 +41,7 @@ The implementation path is recorded in ADR 001 under the user’s delegation. Qu
 
 Each parent action already listed above (M01, E01, R02, U01 and V02) is expanded into stable child IDs below. A parent is complete only when all its children and phase acceptance criteria pass. Each child is a focused delivery unit, potentially several coherent commits where warranted. Child acceptance identifiers use `<action>-AC1`, etc. Do not treat writing this plan, creating a fixture, or passing a model test as completing an editor workflow.
 
-Entry to P1 requires D01–D04. D01 records approval of the implementation path before any executable qualification work in D03/D04. The licence decision is required before distributable software release; no licence is inferred. Actual adopter identities, approval text and language-authority choices are document/profile inputs, not reasons to block software design.
+Original sequencing required D01–D04 before P1. Execution adjustment: portable scaffolding and dependent headless modules were implemented to exercise these qualification contracts; unverified platform/fixture criteria remain gates on acceptance and release, not claims of completion. UI construction still requires the requested design discussion. D01 records approval of the implementation path before any executable qualification work in D03/D04. The licence decision is required before distributable software release; no licence is inferred. Actual adopter identities, approval text and language-authority choices are document/profile inputs, not reasons to block software design.
 
 The document-collection repository remains deferred. This repository will provide a headless publication tool, synthetic integration fixtures and reusable Actions workflow contracts. It will not create the real corpus, upload church drafts, configure a production domain or deploy the publication website. A proof workflow and a deployment contract are different from operating that future repository.
 
@@ -48,7 +49,7 @@ The document-collection repository remains deferred. This repository will provid
 
 ### P0 — settle contracts before building on them
 
-- [ ] **D01 — record technology decisions.** Resolve Q01/Q02 and the remaining renderer selection process in Q03 in tracked decision records. Audit required packages, fonts and their licences for unrestricted free operation. **D01-AC1:** canonical storage ownership, runtime boundaries and exact candidate dependencies are explicit. **D01-AC2:** no paid editor capability, renderer, font, service or watermark is required. **D01-AC3:** unresolved decisions have a named affected action; approval of architecture is not represented as approval of a library. Depends on the user technology discussion; documentation research can proceed independently.
+- [x] **D01 — record technology decisions.** Evidence: ADR 001, locked dependencies, notices and V09.  Resolve Q01/Q02 and the remaining renderer selection process in Q03 in tracked decision records. Audit required packages, fonts and their licences for unrestricted free operation. **D01-AC1:** canonical storage ownership, runtime boundaries and exact candidate dependencies are explicit. **D01-AC2:** no paid editor capability, renderer, font, service or watermark is required. **D01-AC3:** unresolved decisions have a named affected action; approval of architecture is not represented as approval of a library. Resolved under the user’s implementation delegation; renderer compatibility remains in D03.
 - [ ] **D02 — finalise the document and naming profiles.** Produce a normative element/attribute mapping for all supported AKN content, amendments, bilingual expressions and shared resources; a schema version; label grammar; UK/HK terminology and citation examples; and project/container ownership rules. **D02-AC1:** every architecture content type has a valid mapping or a documented external project record, with no invented AKN tags. **D02-AC2:** Parts/subgroupings, body levels, Schedule levels, inserted labels, recitals and amendment quotations have unambiguous scopes. **D02-AC3:** paired titles, direct section prose and trailing parent prose are covered. Research may precede D01, but the persistence mapping must agree with its final decision.
 - [ ] **D03 — qualify the free PDF adapter early.** After D01, render the F04/F07 specimens with the candidate, including a small independent two-PDF destination case. Investigate an open-source finishing step only if required. **D03-AC1:** record pagination, table continuation, Chinese glyphs/extraction, internal links, bookmarks and cross-PDF viewer results on the final artifact. **D03-AC2:** identify any missing behaviour and qualify another free candidate or obtain an explicit requirement decision; never silently downgrade output. **D03-AC3:** record runtime, memory, installation steps and dependency/font licences. This is bounded adapter qualification, not a completed production renderer.
 - [ ] **D04 — validate persistence feasibility and set measurable baselines.** Demonstrate the selected representation with one bilingual document, one shared table, local citation names and one bilingual amendment. Define reference-browser/viewer versions, representative hardware and agreed performance budgets from the F08 corpus. **D04-AC1:** save/reopen preserves exact text, stable identity and a single authoritative shared object. **D04-AC2:** AKN exports validate; supported round-trip loss is zero and unsupported imports are identified. **D04-AC3:** budgets for editor response, preview, save/load and PDF generation are recorded before optimisation, with environment and repeat methodology. Depends on D01/D02; use D03 results for PDF budgets.
@@ -146,14 +147,16 @@ Once separately authorised, the corpus repository will select its name, visibili
 
 | ID | Context and affected actions | Decision needed |
 | --- | --- | --- |
-| Q01 | Canonical AKN was proposed earlier; bilingual shared objects, operations and dependency locks need a complete project container. Affects D01/D02/M01. | AKN plus manifest/resources, or a neutral canonical project format with validated AKN interchange? |
-| Q02 | Browser/headless reuse and structured editing were proposed, not approved. Affects D01 and implementation phases. | Confirm implementation language, editor foundation, UI framework and validating runtime. |
-| Q03 | Cost resolved on 2026-09-11: all required functionality must be free. WeasyPrint is the leading candidate, not a verified choice. Affects D01/R02. | Publication execution resolved: GitHub Actions; a browser-only final renderer and local author helper are unnecessary. Remaining work: verify the free renderer and define explicit asynchronous proof submission. Future repository visibility and deployment host are not selected. |
-| Q04 | Resolved 2026-09-11 by explicit user reply. | MIT software licence added; publication-content rights remain separate. |
+| Q01 | Resolved through implementation delegation, ADR 001. | Neutral canonical project with validated AKN interchange and explicit shared/project metadata. |
+| Q02 | Resolved through implementation delegation, ADR 001. | TypeScript/Node; React/Tiptap dependencies selected but no editor UI constructed. |
+| Q03 | Free execution through Actions resolved; long-output qualification changed the adapter. | Chromium/fontTools/pypdf implemented. Final viewer matrix, runner setup and edge-case fonts still need qualification. |
+| Q04 | Explicit user decision, 2026-09-11. | MIT; third-party and future publication-content rights remain separate. |
+| Q05 | Latest user-defined stopping boundary. | Discuss the editor’s interaction/visual design before constructing any UI. |
+
 
 Nomenclature and schema verification in D02 are research obligations, not extra permission gates. Record ambiguities and bring only material policy choices to the user.
 
-There is enough information to plan all phases now. Q01/Q02 gate dependent implementation, Q03's runtime is resolved but renderer qualification remains D03, and Q04 gates distribution. Future host/visibility choices do not block the editor and engine. No further product-scope clarification is required to maintain this plan.
+There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q03 retains renderer/viewer qualification work; Q05 pauses UI construction. Future host/visibility choices do not block the editor and engine. No further product-scope clarification is required to maintain this plan.
 
 ## Validation evidence
 
@@ -205,3 +208,29 @@ There is enough information to plan all phases now. Q01/Q02 gate dependent imple
 - Automated host/model checks: `npm run check` and `npm test` passed (six tests). Bilingual fixture and one shared table survived project save/reopen and both AKN expression round trips; lxml validated each against the vendored OASIS schema. Changed XML, malformed XML and DTD/entity imports were rejected.
 - D02 profile now records English/HK grouping distinctions, front/body/end mappings, project extension ownership and unsupported foreign-AKN import. D04 is partial: sample round trips pass; stress budgets and broader fixture coverage remain.
 - No browser/viewer or CI claim. No editor UI was constructed.
+
+### V08 — PDF qualification and amendment model — 2026-09-11
+
+- Free PDF qualification produced seven pages; extraction, destination and annotation checks passed. Poppler images of pages 1/4/7 inspected. Actual Preview internal navigation passed; plain relative cross-file URI did not automatically open the adjacent PDF. See `docs/pdf-qualification.md`. D03 remains partial pending production and viewer matrix work.
+- Host/model amendment/reference checks: 14 tests passed, including repeated amendments, transactional rollback, bilingual enforcement, whole-table replacement, Unicode boundaries, tombstones and scheduled cancellation. These are partial E01 implementation evidence, not completed UI workflows.
+- P0 remains the sole active qualification phase; engine work supplies reusable qualification behaviour. No UI is being built. The UI discussion boundary remains unchanged.
+
+- Latest rendering correction: bilingual sources require three outputs: separate English and Traditional Chinese documents, plus a landscape parallel document aligned at each provision. Shared tables span both columns once. This supersedes the early portrait specimen; it does not authorise editor UI work.
+
+### V09 — headless implementation and three-output publishing — 2026-09-11
+
+- Source implementation: separate domain, engine, format, presentation and filesystem adapters. Draft saves preserve adopted/corrupt originals; published outputs include immutable sources/revisions, digest-pinned indexes and on-demand target resources. Same-date replay exposes intermediate snapshots. Published AKN includes generated reference labels and operative amendment payloads, and derived expressions cannot be re-imported as editable sources.
+- Automated host checks: full suite passed before the final AKN-reference regression addition (21 tests); focused AKN/reference tests then passed (5 tests). Final full suite: **22 tests passed**, including generated publication citation text in AKN, catalogue target retrieval, three PDF outputs and failed-approval preservation. Strict `npm run check` and `npm run build` passed. Built package domain/engine imports succeeded under plain Node without editor imports.
+- PDF qualification: English 9 pages, Chinese 8 pages, landscape parallel 14 pages; exact language end markers, row 150, orientations, named destinations, bookmarks and tags passed. Sampled final page images inspected. See `docs/pdf-qualification.md` for actual-versus-unverified viewer results and candidate failures.
+- Representative headless budget: 1,000 provisions, 547,663 bytes, three runs on Mac14,9 / 16 GiB / macOS 26.6.2 / Node 24.12.0. Save 5–6 ms; parse 4–11 ms; validation 2–3 ms; parallel HTML 4–7 ms. Budget: 2 seconds per operation; passed. This does not measure editor latency or the full F08 stress corpus.
+- Actions definitions use pinned action revisions, read-only permissions, bounded execution and one-day proof artifact retention. Definitions are not remote CI evidence; no push, deployment or automatic document upload occurred.
+- MIT recorded. npm metadata inventory contains MIT, Apache-2.0, ISC, BSD-3-Clause and MPL-2.0 dependencies; the pinned Noto font uses OFL. No paid required service/library/font is used.
+
+### Retained acceptance work at the UI design boundary
+
+- D02/D04/M01: complete the entire F01–F05 schema/round-trip matrix, including all nested grouping/continuation cases and broad asset diagnostics. Existing tests are representative, not the whole matrix.
+- E01: expand event-order/cycle and provenance-range fixtures; actual cross-origin/offline-cache browser behaviour remains unverified. Existing history handles whole-target supersession; full surviving-span provenance remains to be completed.
+- R02: complete final supported-viewer navigation, whole-document visual/read-order audits, hosted remote-destination fallback and optional offline/combined modes. Ambiguous font cmap literals currently fail explicitly rather than changing Unicode.
+- R02.6/R02.7: run workflows on the actual Linux runner and exercise deployment concurrency/rollback against a synthetic host. Production deployment and the corpus repository are still deferred.
+- P4: all UI construction, Chinese IME, accessibility/recovery and browser interaction tests remain unstarted pending Q05. Headless model tests do not satisfy them.
+- P5: complete remaining integration, large-stress, third-party distribution and release gates. No release-readiness claim is made.

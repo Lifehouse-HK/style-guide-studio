@@ -1,24 +1,42 @@
 # Style Guide Studio
 
-A structured authoring and publishing system for church style guides, with legislative numbering, formal amendments, bilingual documents and static reference catalogues.
+A structured authoring and publishing system for church style guides, with legislative numbering, formal amendments, bilingual documents and static reference catalogues. Maintained under Lifehouse-HK; software licensed under [MIT](LICENSE).
 
-Maintained under Lifehouse-HK; software licensed under [MIT](LICENSE).
+## Implemented modules
 
-- [Architecture](docs/architecture.md): approved behavioural contracts.
-- [Implementation plan](IMPLEMENTATION_PLAN.md): acceptance gates and dated evidence.
-- [Runtime and storage decision](docs/decisions/001-runtime-and-storage.md): module boundaries and free toolchain.
-- [Repository guide](AGENTS.md): contributor workflow.
+- **Domain:** portable `.sg.json` projects, explicit identities/manual numbering, bilingual/shared content, lifecycle records and diagnostics.
+- **Engine:** original/as-of/proposed revisions, transactional insert/omit/substitute operations, scheduled events, tombstones, history, generated citation names and locked static catalogue resolution.
+- **Formats:** safe project serialization and project-preserving Akoma Ntoso interchange; publication expressions validate against the vendored OASIS schema.
+- **Presentation/runtime:** static HTML, free PDF generation, atomic files, immutable publication resources and source-identified Actions proof tooling.
 
-## Current status
+Bilingual publication produces **three variants**: separate English and Traditional Chinese documents, plus a **landscape document aligning each provision side by side**. Shared tables span the two columns once and have identical content in the separate outputs.
 
-Implementation is underway. The first portable TypeScript domain module provides explicit provision identities and labels, bilingual/shared content, lifecycle records, structured amendment values and diagnostics. This is foundation work, not a completed editor or publishing product.
-
-The user has asked to pause **before building the editor UI**, to discuss its design. Domain, engine and headless publishing work may continue. The actual document collection and publication website remain a separate, deferred repository.
+The editor UI has **not been built**, as requested: its design is the next discussion. The real document collection and deployed publication website remain a separate, deferred repository. This is not yet a release-ready product; remaining viewer, browser and integration acceptance gates are recorded in the plan.
 
 ## Development
 
-Use Node 24 and npm: `npm ci`, then `npm run check`. Create `.venv` with Python 3.14 and run `.venv/bin/pip install -r requirements.lock` before `npm test`, which includes AKN schema checks. Dependencies are pinned in `package-lock.json`. Python PDF qualification dependencies are pinned in `requirements.lock`; install them into an isolated Python environment. Renderer setup and qualification evidence will be added with the adapter.
+Use Node 24.12.0 and Python 3.14:
 
-The canonical `.sg.json` project belongs to the domain, not the editor. AKN language expressions are interchange outputs. The editor and rendering engine are separate modules in this repository. No paid service, font, renderer or editor extension is required.
+```
+npm ci
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.lock
+npm run check
+npm test
+npm run build
+npm run qualify
+```
 
-Portable persistence supports project save/open and project-preserving AKN exports/imports in both languages. See [the profile](docs/document-profile.md) for supported vocabulary and explicit foreign-import limitations.
+The build emits independently consumable modules in `dist/modules`; no editor runtime is imported. PDF production uses Puppeteer’s pinned Chromium, an OFL Noto font, fontTools and pypdf. No paid renderer, font, editor extension or hosted backend is required. Chromium needs its normal system libraries and sandbox support on the runner.
+
+For a synthetic local publication, run `npx tsx tools/create-demo.ts`, then `npm run publish:documents -- work/demo/build.json work/demo/output`. This generates files only; it does not deploy or upload drafts.
+
+## Documentation
+
+- [Architecture](docs/architecture.md) and [runtime/storage decision](docs/decisions/001-runtime-and-storage.md)
+- [Implementation plan and acceptance evidence](IMPLEMENTATION_PLAN.md)
+- [Document/AKN profile](docs/document-profile.md) and [engine contracts](docs/engine.md)
+- [Publishing, proof and recovery operation](docs/publishing.md)
+- [PDF qualification and viewer limitations](docs/pdf-qualification.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+- [Repository guide](AGENTS.md)
