@@ -9,3 +9,6 @@ Our source is MIT. Third-party licences are independent; publication content rig
 - xmldom is MIT; Puppeteer Apache-2.0; Chromium BSD-style with bundled third-party notices; fontTools MIT; pypdf BSD-3-Clause; lxml BSD-3-Clause (with libxml2/libxslt notices). Exact Python versions are in `requirements.lock`. Chromium is installed from the vendor through Puppeteer, not redistributed as repository source.
 
 The npm metadata inventory is in `docs/dependency-licences.json`; installed packages retain their individual notices. Final distribution notice packaging and CI evidence remain release gates.
+
+- Bootstrap Icons 1.13.1: MIT, copyright The Bootstrap Authors. The official icon font is bundled locally; its licence ships at `licenses/bootstrap-icons.txt` in the static editor. Source: https://icons.getbootstrap.com/
+- Times New Roman is selected as an installed system font for editor text and web output. Its font files are not redistributed; systems without it use the configured serif fallback. The PDF adapter retains its separately embedded OFL font.

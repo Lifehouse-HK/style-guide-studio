@@ -34,3 +34,7 @@ References → Defined names manages paired term/document names and can insert d
 Insert also provides embedded PNG/JPEG figures with required alternative text. Recitals can be added from Document details, and trailing parent text from provision properties. Draft blocks and provisions can be removed with Undo available; referenced provisions and amendment author clauses are protected from accidental deletion. Ordinary tables support row/column addition, removal of the last row/column and presentation row numbers.
 
 The recovery writer backs up preceding bytes before replacement, including unreadable recovery data. Browser quota failures leave the previous slot intact and report that a download is needed. This is not a guarantee against browser storage deletion. The workspace replacement prompt offers download/continue/cancel within the editor.
+
+## Typography and icons
+
+Editor text and web publication output prefer Times New Roman, with a Chinese serif fallback. Literal spans remain monospace. The official Bootstrap Icons 1.13.1 icon font is bundled in the static build, so icons need no CDN or account. PDF font embedding remains a separate publication-design setting.

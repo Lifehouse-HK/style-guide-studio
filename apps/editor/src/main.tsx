@@ -39,6 +39,7 @@ import type { Revision } from '../../../packages/engine/src/amendments.ts';
 import { change, findBlock, insertProvision, sample, uid } from './model.ts';
 import { RichText } from './RichText.tsx';
 import './style.css';
+import { Icon } from './Icon.tsx';
 import { AmendmentPanel } from './AmendmentPanel.tsx';
 import { workspaceIndex, lockedIndexes } from './preview.ts';
 import { recoveryKey as CACHE, saveRecovery } from './recovery.ts';
@@ -386,7 +387,7 @@ function App() {
             title="Remove block (can undo)"
             onClick={() => removeBlock(b.id)}
           >
-            ×
+            <Icon name="x-lg" />
           </button>
         )}
         {b.type === 'table' ? (
@@ -429,7 +430,7 @@ function App() {
                     })
                   }
                 >
-                  ＋ Row
+                  <Icon name="plus-lg" /> Row
                 </button>
                 <button
                   onClick={() =>
@@ -438,7 +439,7 @@ function App() {
                     })
                   }
                 >
-                  ＋ Column
+                  <Icon name="plus-lg" /> Column
                 </button>
                 <button
                   disabled={(b.rows?.length ?? 0) < 2}
@@ -448,7 +449,7 @@ function App() {
                     })
                   }
                 >
-                  − Last row
+                  <Icon name="dash-lg" /> Last row
                 </button>
                 <button
                   disabled={(b.rows?.[0]?.length ?? 0) < 2}
@@ -458,7 +459,7 @@ function App() {
                     })
                   }
                 >
-                  − Last column
+                  <Icon name="dash-lg" /> Last column
                 </button>
                 <label>
                   <input
@@ -605,7 +606,7 @@ function App() {
                         })
                       }
                     >
-                      ＋ {l === 'en' ? 'Add English text' : '新增中文內容'}
+                      <Icon name="plus-lg" /> {l === 'en' ? 'Add English text' : '新增中文內容'}
                     </button>
                   )}
                 </>
@@ -782,7 +783,7 @@ function App() {
         }}
         onClick={fn}
       >
-        {icon && <span className="tool-icon">{icon}</span>}
+        {icon && <Icon name={icon} className="tool-icon" />}
         {text}
       </button>
     );
@@ -810,7 +811,10 @@ function App() {
     <div className="app">
       <header className="titlebar">
         <div className="brand">
-          <span className="brand-icon">▤</span> Style Guide Studio
+          <span className="brand-icon">
+            <Icon name="file-earmark-text" />
+          </span>{' '}
+          Style Guide Studio
         </div>
         <div className="document-name">
           {project.titles.en || 'Untitled guide'}{' '}
@@ -839,10 +843,11 @@ function App() {
         )}
         <div className="tab-spacer" />
         <button onClick={() => (preview ? setPreview(null) : void showPreview())}>
-          {preview ? '← Back to writing' : '▧ Publication preview'}
+          <Icon name={preview ? 'arrow-left' : 'file-earmark-richtext'} />{' '}
+          {preview ? 'Back to writing' : 'Publication preview'}
         </button>
         <button className="save" onClick={save}>
-          ↓ Download project
+          <Icon name="download" /> Download project
         </button>
       </nav>
       <div className="ribbon">
@@ -851,15 +856,20 @@ function App() {
             {group(
               'Project',
               <>
-                {tool('New guide', () => openPanel('New guide'), false, '＋')}
-                {tool('Open project', () => file.current?.click(), false, '↥')}
-                {tool('Document details', () => openPanel('Document details'), false, '▤')}
+                {tool('New guide', () => openPanel('New guide'), false, 'plus-lg')}
+                {tool('Open project', () => file.current?.click(), false, 'folder2-open')}
+                {tool(
+                  'Document details',
+                  () => openPanel('Document details'),
+                  false,
+                  'file-earmark-text',
+                )}
               </>,
             )}
             {group(
               'Portable files',
               <>
-                {tool('Download project', save, false, '↓')}
+                {tool('Download project', save, false, 'download')}
                 {tool(
                   'Export AKN',
                   () => {
@@ -868,7 +878,7 @@ function App() {
                       .catch((e) => setNotice(e.message));
                   },
                   false,
-                  '⇩',
+                  'file-earmark-code',
                 )}
               </>,
             )}
@@ -884,44 +894,89 @@ function App() {
             {group(
               'History',
               <>
-                {tool('Undo', () => undo(), !past.current.length, '↶')}
-                {tool('Redo', () => undo(true), !future.current.length, '↷')}
+                {tool('Undo', () => undo(), !past.current.length, 'arrow-counterclockwise')}
+                {tool('Redo', () => undo(true), !future.current.length, 'arrow-clockwise')}
               </>,
             )}
             {group(
               'Text',
               <div className="format-tools">
-                {tool('B', () => format('bold'), !editable)}
-                {tool('I', () => format('italic'), !editable)}
-                {tool('Literal', () => format('code'), !editable)}
-                {tool('x²', () => format('superscript'), !editable)}
-                {tool('x₂', () => format('subscript'), !editable)}
+                <button
+                  aria-label="bold"
+                  title="bold"
+                  disabled={!editable}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format('bold')}
+                >
+                  <Icon name="type-bold" />
+                </button>
+                <button
+                  aria-label="italic"
+                  title="italic"
+                  disabled={!editable}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format('italic')}
+                >
+                  <Icon name="type-italic" />
+                </button>
+                <button
+                  aria-label="code"
+                  title="code"
+                  disabled={!editable}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format('code')}
+                >
+                  <Icon name="code" />
+                </button>
+                <button
+                  aria-label="superscript"
+                  title="superscript"
+                  disabled={!editable}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format('superscript')}
+                >
+                  <Icon name="superscript" />
+                </button>
+                <button
+                  aria-label="subscript"
+                  title="subscript"
+                  disabled={!editable}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format('subscript')}
+                >
+                  <Icon name="subscript" />
+                </button>
               </div>,
             )}
             {group(
               'Content',
               <>
-                {tool('Paragraph', () => addBlock('p'), !editable, '¶')}
-                {tool('Quotation', () => addBlock('quote'), !editable, '❞')}
+                {tool('Paragraph', () => addBlock('p'), !editable, 'paragraph')}
+                {tool('Quotation', () => addBlock('quote'), !editable, 'quote')}
               </>,
             )}
             {group(
               'Provisions',
               <>
-                {tool('Add provision', () => openPanel('Add provision'), !editable, '＋')}
+                {tool('Add provision', () => openPanel('Add provision'), !editable, 'plus-lg')}
                 {tool(
                   'Properties',
                   () => openPanel('Provision properties'),
                   !editable || !chosen,
-                  '§',
+                  'list-ol',
                 )}
               </>,
             )}
             {group(
               'References',
               <>
-                {tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗')}
-                {tool('Defined names', () => openPanel('Defined names'), !editable, '≔')}
+                {tool(
+                  'Insert reference',
+                  () => openPanel('Insert reference'),
+                  !editable,
+                  'link-45deg',
+                )}
+                {tool('Defined names', () => openPanel('Defined names'), !editable, 'book')}
               </>,
             )}
           </>
@@ -940,20 +995,30 @@ function App() {
             )}
             {group(
               'Figures',
-              tool('Image', () => openPanel('Insert image'), !editable || !chosen, '▧'),
+              tool(
+                'Image',
+                () => openPanel('Insert image'),
+                !editable || !chosen,
+                'file-earmark-richtext',
+              ),
             )}
             {group(
               'Tables',
               <>
-                {tool('Table', () => addBlock('table'), !editable, '▦')}
-                {tool('Shared table', () => addBlock('table', true), !editable, '▦')}
+                {tool('Table', () => addBlock('table'), !editable, 'table')}
+                {tool('Shared table', () => addBlock('table', true), !editable, 'table')}
               </>,
             )}
             {group(
               'References',
               <>
-                {tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗')}
-                {tool('Defined names', () => openPanel('Defined names'), !editable, '≔')}
+                {tool(
+                  'Insert reference',
+                  () => openPanel('Insert reference'),
+                  !editable,
+                  'link-45deg',
+                )}
+                {tool('Defined names', () => openPanel('Defined names'), !editable, 'book')}
               </>,
             )}
           </>
@@ -963,14 +1028,19 @@ function App() {
             {group(
               'Structure',
               <>
-                {tool('Add provision', () => openPanel('Add provision'), !editable, '＋')}
+                {tool('Add provision', () => openPanel('Add provision'), !editable, 'plus-lg')}
                 {tool(
                   'Properties',
                   () => openPanel('Provision properties'),
                   !editable || !chosen,
-                  '§',
+                  'list-ol',
                 )}
-                {tool('Titles & opening', () => openPanel('Document details'), false, '▤')}
+                {tool(
+                  'Titles & opening',
+                  () => openPanel('Document details'),
+                  false,
+                  'file-earmark-text',
+                )}
               </>,
             )}
             <p className="ribbon-help">
@@ -985,8 +1055,13 @@ function App() {
             {group(
               'References',
               <>
-                {tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗')}
-                {tool('Defined names', () => openPanel('Defined names'), !editable, '≔')}
+                {tool(
+                  'Insert reference',
+                  () => openPanel('Insert reference'),
+                  !editable,
+                  'link-45deg',
+                )}
+                {tool('Defined names', () => openPanel('Defined names'), !editable, 'book')}
               </>,
             )}
             {group(
@@ -998,12 +1073,12 @@ function App() {
                   openPanel('Insert reference');
                 },
                 !editable,
-                '▤',
+                'file-earmark-text',
               ),
             )}
             {group(
               'Checks',
-              tool('Review document', () => openPanel('Review'), false, '✓'),
+              tool('Review document', () => openPanel('Review'), false, 'check2-circle'),
             )}
           </>
         )}
@@ -1015,7 +1090,7 @@ function App() {
                 project.amendment ? 'Compose amendments' : 'Create amendment',
                 () => openPanel('Amendments'),
                 false,
-                '§',
+                'list-ol',
               ),
             )}
             <p className="ribbon-help">
@@ -1029,11 +1104,16 @@ function App() {
           <>
             {group(
               'Checks',
-              tool('Review document', () => openPanel('Review'), false, '✓'),
+              tool('Review document', () => openPanel('Review'), false, 'check2-circle'),
             )}
             {group(
               'Source',
-              tool('Document details', () => openPanel('Document details'), false, '▤'),
+              tool(
+                'Document details',
+                () => openPanel('Document details'),
+                false,
+                'file-earmark-text',
+              ),
             )}
             <p className="ribbon-help">
               {diagnostics.length} checks to review ·{' '}
@@ -1051,7 +1131,7 @@ function App() {
                 outline ? 'Hide outline' : 'Show outline',
                 () => setOutline(!outline),
                 false,
-                '☷',
+                'layout-sidebar',
               ),
             )}
             {group(
@@ -1074,7 +1154,7 @@ function App() {
             )}
             {group(
               'Preview',
-              tool('Publication preview', () => void showPreview(), false, '▧'),
+              tool('Publication preview', () => void showPreview(), false, 'file-earmark-richtext'),
             )}
             <p className="ribbon-help">
               Bilingual outputs: English, Chinese,
@@ -1100,7 +1180,7 @@ function App() {
               className={selected === 'titles' ? 'selected' : ''}
               onClick={() => select('titles')}
             >
-              ▤ <span>Titles & opening</span>
+              <Icon name="file-earmark-text" /> <span>Titles & opening</span>
             </button>
             {(function tree(ns: Provision[], depth = 0): React.ReactNode {
               return ns.map((n) => (
@@ -1129,7 +1209,7 @@ function App() {
             })(project.provisions)}
             <div className="outline-bottom">
               <button disabled={!editable} onClick={() => openPanel('Add provision')}>
-                ＋ Add provision
+                <Icon name="plus-lg" /> Add provision
               </button>
             </div>
           </aside>
@@ -1186,7 +1266,7 @@ function App() {
                         openPanel('Add provision');
                       }}
                     >
-                      ＋ Add first provision
+                      <Icon name="plus-lg" /> Add first provision
                     </button>
                   </div>
                 )}
@@ -1206,7 +1286,7 @@ function App() {
             <div className="panel-title">
               <h2>{panel}</h2>
               <button aria-label="Close panel" onClick={() => setPanel('')}>
-                ×
+                <Icon name="x-lg" />
               </button>
             </div>
             {formError && (
@@ -1354,7 +1434,7 @@ function App() {
                         })
                       }
                     >
-                      ＋ {l === 'en' ? 'Recital' : '序言'}
+                      <Icon name="plus-lg" /> {l === 'en' ? 'Recital' : '序言'}
                     </button>
                     {(['longTitle', 'formula', 'authentication'] as const).map((k) => (
                       <label key={k}>
@@ -1479,7 +1559,7 @@ function App() {
                     })
                   }
                 >
-                  ＋ Trailing parent text
+                  <Icon name="plus-lg" /> Trailing parent text
                 </button>
                 <button
                   disabled={!editable}
@@ -1715,7 +1795,7 @@ function App() {
                     })
                   }
                 >
-                  ＋ Define a name
+                  <Icon name="plus-lg" /> Define a name
                 </button>
               </>
             )}

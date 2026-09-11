@@ -20,6 +20,7 @@
     "@tiptap/react": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
     "@xmldom/xmldom": "0.9.12",
+    "bootstrap-icons": "1.13.1",
     "puppeteer": "25.10.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

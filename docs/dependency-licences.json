@@ -891,6 +891,11 @@
       "name": "zod",
       "version": "4.6.2",
       "license": "MIT"
+    },
+    {
+      "name": "bootstrap-icons",
+      "version": "1.13.1",
+      "license": "MIT"
     }
   ]
 }

@@ -252,3 +252,9 @@ There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q0
 - UI reliability fixes: mounting read-only editors no longer produces false edits; nested selection targets the clicked provision; an in-app replacement prompt replaces the blocking browser confirm; opening an existing file no longer marks it changed. Recovery download/reload and undo were exercised in V10.
 - CI definition now includes the static-editor build. **No remote Actions run, push or deployment was performed.** The local development preview remains running. Build output is about 876 kB JavaScript before compression / 276 kB gzip; the bundler's chunk-size advisory is retained, not a measured runtime failure.
 - U01 remains partial: actual IME/screen-reader/multi-browser and broad stress checks, all recovery-failure scenarios, source refresh/custom reference controls, earlier adopted amendment chains, precise-range/event composition and complete nested replacement editing remain. Figures/definition controls have source/build coverage but not full actual-UI stories. Proposed preview currently omits history annotations. P3 viewer/provenance and P5 release gates remain open.
+
+### V12 — requested typography and icon font — 2026-09-11
+
+- Applied Times New Roman to editor text and web publication output; retained literal monospace and the separate PDF font adapter. Replaced Unicode symbol icons throughout with the official MIT Bootstrap Icons font, bundled locally with its licence.
+- `npm run check`, `npm run build:editor`, and three presentation tests passed; build emits WOFF/WOFF2 font assets. Source validation confirmed every selected icon exists in the installed font stylesheet. No new browser/UI or PDF qualification is claimed for this styling change.
+- P4 remains active. Next requested work: make numbering controls directly discoverable for every structural level and qualify Part amendment operations.

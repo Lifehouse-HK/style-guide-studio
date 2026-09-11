@@ -1,3 +1,4 @@
+import { Icon } from './Icon.tsx';
 import { useEffect, useState } from 'react';
 import {
   activeLanguages,
@@ -150,7 +151,7 @@ export function AmendmentPanel({
             })
           }
         >
-          ＋ Row
+          <Icon name="plus-lg" /> Row
         </button>
         <button
           onClick={() =>
@@ -159,7 +160,7 @@ export function AmendmentPanel({
             })
           }
         >
-          ＋ Column
+          <Icon name="plus-lg" /> Column
         </button>
       </div>
     ) : b.type === 'figure' ? (
@@ -417,7 +418,7 @@ export function AmendmentPanel({
                         })
                       }
                     >
-                      ＋ {l} text
+                      <Icon name="plus-lg" /> {l} text
                     </button>
                   )}
                 </div>
