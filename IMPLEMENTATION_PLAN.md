@@ -6,12 +6,12 @@ This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements 
 
 ## Current status
 
-- The user authorised implementation, selected MIT, then requested a stop before editor UI construction for design discussion. No editor UI or real corpus repository has been created.
+- The user approved UI implementation after selecting a compact desktop Office-style ribbon with one writing canvas and preview on demand. MIT remains selected; the real corpus repository is deferred.
 - Portable domain, safe project/AKN formats, amendment/reference engines, static presentation, atomic headless publication and Actions proof/check definitions now exist. These are separately consumable modules; implementation does not imply every acceptance gate has passed.
-- Current primary phase: **P3, presentation and headless publication qualification**, paused at the requested design handoff. P0–P2 have implemented portions with outstanding cross-cutting qualification; they are not marked fully complete.
+- Current primary phase: **P4, static desktop editor implementation**. P3 qualification remains incomplete and inactive. P0–P2 have implemented portions with outstanding cross-cutting qualification; they are not marked fully complete.
 - Selected PDF path: free Chromium/Puppeteer, fontTools and pypdf after WeasyPrint failed long parallel tests. Each bilingual source produces separate portrait English/Chinese documents and one provision-aligned landscape document with shared tables spanning both columns once.
 - Host tests, module compilation, synthetic headless publication and sampled PDF qualification have passed. Full viewer/CORS/CI checks and the complete fixture matrix remain open; see V09 and the explicit follow-ups below.
-- Next user-facing action: discuss editor UI design. Next independent technical work: finish retained headless acceptance checks without constructing the UI.
+- Active action: U01, desktop structured authoring and browser verification. Remaining P3 checks still gate release; they do not prevent the authorised UI work.
 
 Markers: `[ ]` not started; `[~]` active; `[x]` complete with evidence; `[!]` blocked by a referenced question. Only one primary phase may be active.
 
@@ -24,24 +24,24 @@ Markers: `[ ]` not started; `[~]` active; `[x]` complete with evidence; `[!]` bl
 
 ## Delivery phases
 
-These are dependencies and acceptance gates. The user has now authorised implementation through the headless tooling, with UI construction paused for design discussion. Each phase will be delivered through focused actions/commits; additional action IDs may be added without renumbering existing IDs. Architecture section 18 items are referenced as ARCH-18.1 through ARCH-18.14.
+These are dependencies and acceptance gates. The user has now authorised implementation through the headless tooling, including the desktop UI after the ribbon design discussion. Each phase will be delivered through focused actions/commits; additional action IDs may be added without renumbering existing IDs. Architecture section 18 items are referenced as ARCH-18.1 through ARCH-18.14.
 
 | Phase | Status | Dependency | Action | Acceptance criteria |
 | --- | --- | --- | --- | --- |
 | P0: design and decisions | [ ] | None | D01: resolve implementation choices Q01–Q03 and record approvals; D02: verify the AKN and UK/HK nomenclature mappings; D03: qualify the free PDF path | P0-AC1: technology/storage choices recorded as decisions, not assumptions; P0-AC2: every supported document feature and citation level has a verified mapping and identified fixtures; Q04 gates distribution in P5, not independent design work |
 | P1: domain and persistence | [ ] | P0 | M01: implement the portable model, validation, persistence and migrations | P1-AC1: ARCH-18.1–5 and 18.11 pass for the domain/format layer; P1-AC2: round trips preserve shared content, identities and Unicode; no editor-only save format |
 | P2: references and amendments | [ ] | P1 | E01: implement catalogue resolution, interpretation names and transactional amendment/revision construction | P2-AC1: ARCH-18.5–10 pass at engine level; P2-AC2: conflicting, draft and future operations cannot silently affect effective text; whole-table and bilingual rules enforced |
-| P3: presentation | [~] | P2 | R02: implement web/print projections, PDF adapter and static catalogue output | P3-AC1: ARCH-18.10, 18.12–14 pass for rendered artifacts and headless use; P3-AC2: bilingual pagination and link destinations inspected in recorded viewers; unsupported behaviour documented |
-| P4: static editor | [ ] | P3 | U01: implement structured authoring, save/recovery, external references, amendment review and common-engine previews | P4-AC1: relevant ARCH-18.1–14 pass through actual UI workflows; P4-AC2: Chinese IME, keyboard/screen-reader access and shared-table editing verified separately from model tests |
+| P3: presentation | [ ] | P2 | R02: implement web/print projections, PDF adapter and static catalogue output | P3-AC1: ARCH-18.10, 18.12–14 pass for rendered artifacts and headless use; P3-AC2: bilingual pagination and link destinations inspected in recorded viewers; unsupported behaviour documented |
+| P4: static editor | [~] | P3 | U01: implement structured authoring, save/recovery, external references, amendment review and common-engine previews | P4-AC1: relevant ARCH-18.1–14 pass through actual UI workflows; P4-AC2: Chinese IME, keyboard/screen-reader access and shared-table editing verified separately from model tests |
 | P5: integrated readiness | [ ] | P4 | V02: verify the complete acceptance contract and document operation/release procedures | P5-AC1: ARCH-18.1–14 have dated evidence; P5-AC2: configured checks/CI pass, limitations and licence recorded; P5-AC3: release readiness is explicitly assessed, not inferred from unit tests |
 
 ## Implementation rules and boundaries
 
-The implementation path is recorded in ADR 001 under the user’s delegation. Qualification precedes reliance on candidate capabilities. The UI boundary is a user-requested stop, not a technical blocker.
+The implementation path is recorded in ADR 001 under the user’s delegation. Qualification precedes reliance on candidate capabilities. The earlier UI stop was lifted on 2026-09-11 after the ribbon design discussion.
 
 Each parent action already listed above (M01, E01, R02, U01 and V02) is expanded into stable child IDs below. A parent is complete only when all its children and phase acceptance criteria pass. Each child is a focused delivery unit, potentially several coherent commits where warranted. Child acceptance identifiers use `<action>-AC1`, etc. Do not treat writing this plan, creating a fixture, or passing a model test as completing an editor workflow.
 
-Original sequencing required D01–D04 before P1. Execution adjustment: portable scaffolding and dependent headless modules were implemented to exercise these qualification contracts; unverified platform/fixture criteria remain gates on acceptance and release, not claims of completion. UI construction still requires the requested design discussion. D01 records approval of the implementation path before any executable qualification work in D03/D04. The licence decision is required before distributable software release; no licence is inferred. Actual adopter identities, approval text and language-authority choices are document/profile inputs, not reasons to block software design.
+Original sequencing required D01–D04 before P1. Execution adjustment: portable scaffolding and dependent headless modules were implemented to exercise these qualification contracts; unverified platform/fixture criteria remain gates on acceptance and release, not claims of completion. The requested design discussion has taken place; compact desktop ribbon implementation is authorised. D01 records approval of the implementation path before any executable qualification work in D03/D04. The licence decision is required before distributable software release; no licence is inferred. Actual adopter identities, approval text and language-authority choices are document/profile inputs, not reasons to block software design.
 
 The document-collection repository remains deferred. This repository will provide a headless publication tool, synthetic integration fixtures and reusable Actions workflow contracts. It will not create the real corpus, upload church drafts, configure a production domain or deploy the publication website. A proof workflow and a deployment contract are different from operating that future repository.
 
@@ -151,12 +151,12 @@ Once separately authorised, the corpus repository will select its name, visibili
 | Q02 | Resolved through implementation delegation, ADR 001. | TypeScript/Node; React/Tiptap dependencies selected but no editor UI constructed. |
 | Q03 | Free execution through Actions resolved; long-output qualification changed the adapter. | Chromium/fontTools/pypdf implemented. Final viewer matrix, runner setup and edge-case fonts still need qualification. |
 | Q04 | Explicit user decision, 2026-09-11. | MIT; third-party and future publication-content rights remain separate. |
-| Q05 | Latest user-defined stopping boundary. | Discuss the editor’s interaction/visual design before constructing any UI. |
+| Q05 | Resolved by user, 2026-09-11. | Implement a compact desktop Office-style ribbon, one writing canvas and preview on demand. |
 
 
 Nomenclature and schema verification in D02 are research obligations, not extra permission gates. Record ambiguities and bring only material policy choices to the user.
 
-There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q03 retains renderer/viewer qualification work; Q05 pauses UI construction. Future host/visibility choices do not block the editor and engine. No further product-scope clarification is required to maintain this plan.
+There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q03 retains renderer/viewer qualification work; Q05 is resolved. Future host/visibility choices do not block the editor and engine. No further product-scope clarification is required to maintain this plan.
 
 ## Validation evidence
 
@@ -232,5 +232,13 @@ There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q0
 - E01: expand event-order/cycle and provenance-range fixtures; actual cross-origin/offline-cache browser behaviour remains unverified. Existing history handles whole-target supersession; full surviving-span provenance remains to be completed.
 - R02: complete final supported-viewer navigation, whole-document visual/read-order audits, hosted remote-destination fallback and optional offline/combined modes. Ambiguous font cmap literals currently fail explicitly rather than changing Unicode.
 - R02.6/R02.7: run workflows on the actual Linux runner and exercise deployment concurrency/rollback against a synthetic host. Production deployment and the corpus repository are still deferred.
-- P4: all UI construction, Chinese IME, accessibility/recovery and browser interaction tests remain unstarted pending Q05. Headless model tests do not satisfy them.
+- P4: initial UI implementation and browser checks are recorded in V10. Full Chinese IME, accessibility, amendment-composer and recovery-failure coverage remain open; headless model tests do not satisfy them.
 - P5: complete remaining integration, large-stress, third-party distribution and release gates. No release-readiness claim is made.
+
+### V10 — desktop ribbon authoring foundation — 2026-09-11
+
+- User authorised compact desktop UI after discussing the ribbon prototype. P4 is the only active phase; earlier P0–P3 acceptance gaps remain.
+- Implemented a static React/Tiptap editor using the portable project model. Manual provision creation, outline, ordinary/shared tables, bilingual views, atomic inline references, draft-only edits, JSON/AKN import/export, undo/redo, local recovery and common-engine preview exist. No publication repository or deployment was created.
+- Host checks: `npm run check`, `npm run build:editor`, and three focused `tests/editor.test.ts` model tests passed. Tests cover insertion identity/order, invalid hierarchy rollback, Unicode/marks/reference round trips and adopted-source protection.
+- Actual browser checks: local in-app browser on macOS; inserted 5B after 5A, edited its heading and prose, downloaded/reloaded it through local recovery, inserted a local Schedule reference and undid that insertion. Initial reference-path and mount-update bugs were found and corrected. Screenshot inspected for desktop ribbon/canvas layout.
+- Not complete U01 acceptance: amendment composition, full content/asset controls, definition management, source-origin previews, IME, external CORS, multi-browser/accessibility and failure recovery remain to be completed or qualified. PDF proof submission remains headless.

@@ -9,9 +9,12 @@
     "check": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "publish:documents": "tsx tools/publish.ts",
-    "qualify": "tsx tools/render-specimens.ts && .venv/bin/python tools/qualify.py"
+    "qualify": "tsx tools/render-specimens.ts && .venv/bin/python tools/qualify.py",
+    "dev": "vite --host 127.0.0.1",
+    "build:editor": "vite build"
   },
   "dependencies": {
+    "@tiptap/core": "3.31.3",
     "@tiptap/extension-table": "3.31.3",
     "@tiptap/pm": "3.31.3",
     "@tiptap/react": "3.31.3",

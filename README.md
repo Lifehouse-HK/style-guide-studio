@@ -4,6 +4,7 @@ A structured authoring and publishing system for church style guides, with legis
 
 ## Implemented modules
 
+- **Editor:** local desktop authoring; adopted/withdrawn sources open read-only. See [editor operation and current limits](docs/editor.md).
 - **Domain:** portable `.sg.json` projects, explicit identities/manual numbering, bilingual/shared content, lifecycle records and diagnostics.
 - **Engine:** original/as-of/proposed revisions, transactional insert/omit/substitute operations, scheduled events, tombstones, history, generated citation names and locked static catalogue resolution.
 - **Formats:** safe project serialization and project-preserving Akoma Ntoso interchange; publication expressions validate against the vendored OASIS schema.
@@ -11,7 +12,7 @@ A structured authoring and publishing system for church style guides, with legis
 
 Bilingual publication produces **three variants**: separate English and Traditional Chinese documents, plus a **landscape document aligning each provision side by side**. Shared tables span the two columns once and have identical content in the separate outputs.
 
-The editor UI has **not been built**, as requested: its design is the next discussion. The real document collection and deployed publication website remain a separate, deferred repository. This is not yet a release-ready product; remaining viewer, browser and integration acceptance gates are recorded in the plan.
+The **desktop editor** now has a compact Office-style ribbon, a single structured writing canvas, an outline, optional bilingual alignment, shared tables, manual provision insertion, local/external reference selection, project/AKN files, recovery and on-demand common-engine HTML preview. Run `npm run dev` or build the fully static app with `npm run build:editor`. Authoring and publication typography remain separate; current publication styling is provisional. The real document collection and deployed publication website remain a separate, deferred repository. This is not yet a release-ready product; remaining viewer, browser and integration acceptance gates are recorded in the plan.
 
 ## Development
 
