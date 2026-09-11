@@ -37,4 +37,4 @@ The recovery writer backs up preceding bytes before replacement, including unrea
 
 ## Typography and icons
 
-Editor text and web publication output prefer Times New Roman, with a Chinese serif fallback. Literal spans remain monospace. The official Bootstrap Icons 1.13.1 icon font is bundled in the static build, so icons need no CDN or account. PDF font embedding remains a separate publication-design setting.
+The document canvas and web publication output prefer Times New Roman, with a Chinese serif fallback. The ribbon, outline, properties, dialogs and editing controls use system sans-serif. These are separate central CSS font settings. Literal spans remain monospace. The official Bootstrap Icons 1.13.1 icon font is bundled in the static build, so icons need no CDN or account. PDF font embedding remains a separate publication-design setting.

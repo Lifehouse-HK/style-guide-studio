@@ -266,3 +266,9 @@ There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q0
 - Amendment targets now show structural type/address, including Parts and Schedules. Existing structural insert/omit/substitute engine operations are exposed clearly. A new model story inserts Part 1A, inserts its bilingual child in the next operation, substitutes the Part heading, and omits another Part with descendant tombstones; the principal remains exact.
 - Automated host verification: all **14 focused editor/amendment tests passed**; `npm run check`, `npm run build`, and `npm run build:editor` passed. The label test covers Parts, Schedules and nested provisions, content/identity preservation, duplicate rejection and adopted protection. Static build retains the known chunk-size advisory. No new browser, PDF, remote CI, push or deployment evidence is claimed.
 - P4/U01 remains active. Next acceptance work remains advanced amendment authoring and desktop browser/IME/accessibility qualification described in V11; the requested changes do not close those broader gates.
+
+
+### V14 — separate interface and document typography — 2026-09-11
+
+- Corrected the typography scope following user clarification: system sans-serif for interface text and editing controls, Times New Roman for the document canvas and rendered HTML. Central `--font-ui` and `--font-document` settings keep the distinction explicit; icon and literal fonts remain independent.
+- `npm run build:editor` passed. This CSS-only correction has source/build verification; no new browser or PDF qualification. P4/U01 remains active with the existing acceptance follow-ups.
