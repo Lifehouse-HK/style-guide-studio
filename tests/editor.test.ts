@@ -58,3 +58,82 @@ test('editor commands reject adopted sources and preserve caller bytes', () => {
   );
   assert.equal(canonical(p), before);
 });
+
+test('amendment composer inserts a bilingual provision and captures each intermediate precondition', async () => {
+  const { translationGuide, provision } = await import('../fixtures/examples.ts');
+  const { amendmentDraft, appendOperation, proposedState } =
+    await import('../apps/editor/src/amendment-model.ts');
+  const base = translationGuide(),
+    original = canonical(base);
+  let draft = amendmentDraft(base, { en: 'Amendment 2027', 'zh-Hant': '2027年修訂指引' });
+  const node = provision('new5b', '5B', 'Inserted wording.', '新加入的字句。');
+  draft = await appendOperation(base, draft, '2027-01-01', '1', {
+    type: 'insert',
+    scope: 'structure',
+    target: 's5a',
+    position: 'after',
+    node,
+    instructions: { en: 'After section 5A, insert—', 'zh-Hant': '在第5A條之後加入——' },
+  });
+  let out = await proposedState(base, draft, '2027-01-01');
+  assert.deepEqual(
+    out.project.provisions.map((n) => n.label),
+    ['1', '5', '5A', '5B', '6', '1'],
+  );
+  assert.equal(out.state, 'proposed');
+  draft = await appendOperation(base, draft, '2027-01-01', '2', {
+    type: 'substitute',
+    scope: 'en',
+    target: 'new5b-en',
+    block: { id: 'new5b-en', type: 'p', inlines: [{ text: 'Revised inserted wording.' }] },
+    instructions: { en: 'Substitute the English wording.', 'zh-Hant': '代替英文字句。' },
+  });
+  out = await proposedState(base, draft, '2027-01-01');
+  assert.equal(
+    out.project.provisions[3].content.en![0].inlines[0].text,
+    'Revised inserted wording.',
+  );
+  assert.equal(canonical(base), original);
+  const invalid = structuredClone(draft);
+  invalid.amendment!.operations[1].expected = 'wrong';
+  await assert.rejects(proposedState(base, invalid, '2027-01-01'), /digest/);
+  await assert.rejects(
+    appendOperation(base, draft, '2027-01-01', '3', {
+      type: 'omit',
+      scope: 'structure',
+      target: 's6',
+      instructions: { en: 'Omit section 6.' },
+    }),
+    /Paired instructions/,
+  );
+});
+
+test('recovery retains the old slot when a backup write fails and preserves malformed bytes', async () => {
+  const { saveRecovery, recoveryKey } = await import('../apps/editor/src/recovery.ts');
+  const values = new Map([[recoveryKey, 'broken source bytes']]);
+  const storage = {
+    getItem: (k: string) => values.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      values.set(k, v);
+    },
+  };
+  saveRecovery(storage, sample());
+  assert.equal(values.get(recoveryKey + '.unreadable'), 'broken source bytes');
+  const old = values.get(recoveryKey);
+  const p = sample();
+  p.titles.en = 'Changed';
+  assert.throws(
+    () =>
+      saveRecovery(
+        {
+          ...storage,
+          setItem: () => {
+            throw new Error('quota');
+          },
+        },
+        p,
+      ),
+    /quota/,
+  );
+  assert.equal(values.get(recoveryKey), old);
+});

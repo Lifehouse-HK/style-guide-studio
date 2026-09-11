@@ -16,6 +16,7 @@ import {
   type Project,
   type Provision,
   type Reference,
+  referenceValues,
 } from '../../../packages/domain/src/index.ts';
 import { importAKN, exportAKN } from '../../../packages/formats/src/index.ts';
 import {
@@ -38,7 +39,9 @@ import type { Revision } from '../../../packages/engine/src/amendments.ts';
 import { change, findBlock, insertProvision, sample, uid } from './model.ts';
 import { RichText } from './RichText.tsx';
 import './style.css';
-const CACHE = 'style-guide-studio.recovery.v1';
+import { AmendmentPanel } from './AmendmentPanel.tsx';
+import { workspaceIndex, lockedIndexes } from './preview.ts';
+import { recoveryKey as CACHE, saveRecovery } from './recovery.ts';
 const names: Record<Kind, string> = {
   part: 'Part',
   chapter: 'Chapter',
@@ -94,19 +97,7 @@ function snapshot(p: Project): Revision {
   };
 }
 function localIndex(p: Project) {
-  const state = snapshot(p);
-  return makeIndex(
-    p,
-    [
-      indexRevision(
-        state,
-        p.stage === 'draft' ? 'draft' : 'original',
-        { en: './', 'zh-Hant': './' },
-        { en: './', 'zh-Hant': './' },
-      ),
-    ],
-    p.revision,
-  );
+  return workspaceIndex(snapshot(p));
 }
 function App() {
   const [start] = useState(initial);
@@ -122,7 +113,13 @@ function App() {
   );
   const [outline, setOutline] = useState(true);
   const [panel, setPanel] = useState('');
+  const [pendingOpen, setPendingOpen] = useState<{
+    p: Project;
+    options: { new?: boolean; base?: Project; panel?: string };
+  } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [amendmentBase, setAmendmentBase] = useState<Project | null>(null);
+  const baseFile = useRef<HTMLInputElement>(null);
   const [zoom, setZoom] = useState(100);
   const [filter, setFilter] = useState('');
   const [dirty, setDirty] = useState(false);
@@ -137,6 +134,9 @@ function App() {
   const file = useRef<HTMLInputElement>(null);
   const [formError, setFormError] = useState('');
   const [source, setSource] = useState('');
+  const [figureFile, setFigureFile] = useState<File | null>(null);
+  const [figureAlt, setFigureAlt] = useState('');
+  const [figureShared, setFigureShared] = useState(false);
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
   const [external, setExternal] = useState<DocumentIndex | null>(null);
   const [busy, setBusy] = useState(false);
@@ -148,6 +148,13 @@ function App() {
   const [addPosition, setAddPosition] = useState<'after' | 'child' | 'end'>('after');
   const [addLabel, setAddLabel] = useState('');
   const client = useRef<CatalogueClient | null>(null);
+  const sourceIndexes = useMemo(() => {
+    try {
+      return lockedIndexes(project);
+    } catch {
+      return [];
+    }
+  }, [project.locks]);
   const editable = project.stage === 'draft';
   const diagnostics = useMemo(() => validate(project), [project]);
   const all = useMemo(() => walk(project.provisions), [project]);
@@ -157,7 +164,7 @@ function App() {
     if (!dirty) return;
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem(CACHE, canonical(project));
+        saveRecovery(localStorage, project);
         setCacheStatus('Recovery saved on this device');
       } catch {
         setCacheStatus('Recovery unavailable — download your project');
@@ -232,7 +239,7 @@ function App() {
   });
   function save() {
     try {
-      localStorage.setItem(CACHE, canonical(live.current));
+      saveRecovery(localStorage, live.current);
       setCacheStatus('Recovery saved on this device');
     } catch {
       setCacheStatus('Recovery unavailable — keep your download');
@@ -255,14 +262,17 @@ function App() {
       .getElementById('provision-' + id)
       ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
-  function replace(p: Project) {
-    if (
-      dirty &&
-      !confirm(
-        'Replace the current workspace? Download your current project first if you need to keep it.',
-      )
-    )
+  function replace(
+    p: Project,
+    options: { new?: boolean; base?: Project; panel?: string } = {},
+    force = false,
+  ) {
+    if (dirty && !force) {
+      setPendingOpen({ p, options });
       return;
+    }
+    setPendingOpen(null);
+    setAmendmentBase(options.base ?? null);
     past.current = [];
     future.current = [];
     live.current = p;
@@ -270,8 +280,14 @@ function App() {
     setSelected(p.provisions[0]?.id ?? 'titles');
     setLayout(p.mode === 'bilingual' ? 'parallel' : p.mode);
     setPreview(null);
-    setDirty(true);
-    setPanel('');
+    setDirty(!!options.new);
+    try {
+      saveRecovery(localStorage, p);
+      setCacheStatus('Recovery saved on this device');
+    } catch {
+      setCacheStatus('Recovery unavailable — download your project');
+    }
+    setPanel(options.panel ?? '');
     focused.current = null;
     setNotice(
       p.stage === 'draft' ? 'Project opened.' : 'Certified or withdrawn source opened read-only.',
@@ -290,17 +306,7 @@ function App() {
   }
   async function showPreview() {
     try {
-      const indexes = [
-        localIndex(project),
-        ...project.locks.flatMap((l) => {
-          try {
-            const v = indexSchema.safeParse(JSON.parse(l.body));
-            return v.success ? [v.data] : [];
-          } catch {
-            return [];
-          }
-        }),
-      ];
+      const indexes = [localIndex(project), ...lockedIndexes(project)];
       const html = renderHTML(
         preparePublication(snapshot(project), indexes, location.href, true),
         layout,
@@ -327,17 +333,62 @@ function App() {
     return (
       <RichText
         value={xs}
+        resolveLabel={(i) => {
+          const l = label.startsWith('zh-Hant') ? 'zh-Hant' : 'en';
+          if (i.term) return project.definitions.find((d) => d.id === i.term)?.names[l] ?? i.text;
+          if (!i.ref) return i.text;
+          try {
+            const idx =
+              i.ref.document === project.id && i.ref.publisher === project.publisher
+                ? localIndex(project)
+                : sourceIndexes.find(
+                    (d) => d.id === i.ref!.document && d.publisher === i.ref!.publisher,
+                  );
+            return idx
+              ? resolveReference(project, i.ref, idx, l, location.href).label
+              : '[Unresolved reference] ' + i.text;
+          } catch {
+            return '[Unresolved reference] ' + i.text;
+          }
+        }}
         label={label}
         editable={editable}
         onChange={(v) => updateInline(id, v, row, col)}
-        onFocus={(e) => (focused.current = e)}
+        onFocus={(e) => {
+          focused.current = e;
+          focusedLanguage.current = label.startsWith('zh-Hant') ? 'zh-Hant' : 'en';
+        }}
         onNotice={setNotice}
       />
     );
   }
+  function removeBlock(id: string) {
+    edit((p) => {
+      for (const n of walk(p.provisions)) {
+        if (n.shared) n.shared = n.shared.filter((b) => b.id !== id);
+        for (const l of ['en', 'zh-Hant'] as const) {
+          if (n.content[l]) n.content[l] = n.content[l]!.filter((b) => b.id !== id);
+          if (n.tail[l]) n.tail[l] = n.tail[l]!.filter((b) => b.id !== id);
+        }
+      }
+      for (const l of ['en', 'zh-Hant'] as const)
+        if (p.opening.recitals[l])
+          p.opening.recitals[l] = p.opening.recitals[l]!.filter((b) => b.id !== id);
+    });
+  }
   function renderBlock(b: Block, l: Language | 'shared') {
     return (
       <div key={b.id} className={'block block-' + b.type}>
+        {editable && (
+          <button
+            className="remove-block"
+            aria-label={'Remove ' + b.type + ' block'}
+            title="Remove block (can undo)"
+            onClick={() => removeBlock(b.id)}
+          >
+            ×
+          </button>
+        )}
         {b.type === 'table' ? (
           <>
             <input
@@ -389,6 +440,26 @@ function App() {
                 >
                   ＋ Column
                 </button>
+                <button
+                  disabled={(b.rows?.length ?? 0) < 2}
+                  onClick={() =>
+                    edit((p) => {
+                      findBlock(p, b.id)!.rows!.pop();
+                    })
+                  }
+                >
+                  − Last row
+                </button>
+                <button
+                  disabled={(b.rows?.[0]?.length ?? 0) < 2}
+                  onClick={() =>
+                    edit((p) => {
+                      findBlock(p, b.id)!.rows!.forEach((r) => r.pop());
+                    })
+                  }
+                >
+                  − Last column
+                </button>
                 <label>
                   <input
                     type="checkbox"
@@ -404,6 +475,26 @@ function App() {
               </div>
             )}
           </>
+        ) : b.type === 'definition' && b.definition ? (
+          <p>
+            {(() => {
+              const d = project.definitions.find((d) => d.id === b.definition);
+              const language = l === 'shared' ? 'en' : l;
+              const idx = d?.document
+                ? sourceIndexes.find(
+                    (i) =>
+                      i.id === d.document && i.publisher === (d.publisher ?? project.publisher),
+                  )
+                : undefined;
+              return d
+                ? '“' +
+                    (d.names[language] ?? '') +
+                    '” ' +
+                    (language === 'en' ? 'means ' : '指') +
+                    (idx?.titles[language] ?? d.meaning[language] ?? '')
+                : 'Missing definition';
+            })()}
+          </p>
         ) : b.type === 'figure' ? (
           <figure>
             {project.assets[b.asset ?? ''] && (
@@ -452,11 +543,31 @@ function App() {
               className="language-cell"
               style={{ paddingLeft: group ? 0 : Math.min(depth, 3) * 12 }}
             >
-              <div className="provision-heading">
+              <div
+                className={
+                  'provision-heading ' +
+                  (!group &&
+                  n.kind !== 'section' &&
+                  !['schedule', 'appendix'].includes(n.kind) &&
+                  !n.heading[l]
+                    ? 'compact-heading'
+                    : '')
+                }
+              >
                 <span className="number">
-                  {group
-                    ? names[n.kind] + ' ' + n.label
-                    : ['schedule', 'appendix'].includes(n.kind)
+                  {l === 'zh-Hant' && n.label
+                    ? ((
+                        {
+                          part: '第' + n.label + '部',
+                          chapter: '第' + n.label + '章',
+                          division: '第' + n.label + '分部',
+                          subdivision: '第' + n.label + '次分部',
+                          section: '第' + n.label + '條',
+                          schedule: '附表' + n.label,
+                          appendix: '附錄' + n.label,
+                        } as Partial<Record<Kind, string>>
+                      )[n.kind] ?? '(' + n.label + ')')
+                    : group || ['schedule', 'appendix'].includes(n.kind)
                       ? names[n.kind] + ' ' + n.label
                       : n.kind === 'section'
                         ? n.label + '.'
@@ -508,6 +619,52 @@ function App() {
             {n.shared.map((b) => renderBlock(b, 'shared'))}
           </div>
         )}
+        {project.amendment?.operations
+          .filter((op) => op.author === n.id)
+          .map((op) => (
+            <div className="operative" key={op.id}>
+              <div className={'language-pair ' + (layout === 'parallel' ? 'parallel' : '')}>
+                {langs.map((l) => (
+                  <div key={l}>
+                    <p>{op.instructions[l]}</p>
+                    {op.node && (
+                      <blockquote>
+                        <strong>
+                          {op.node.label} {op.node.heading[l]}
+                        </strong>
+                        {(op.node.content[l] ?? []).map((b) => (
+                          <p key={b.id}>{b.inlines.map((i) => i.text).join('')}</p>
+                        ))}
+                        {op.node.children.length > 0 && (
+                          <p className="hint">
+                            Includes {op.node.children.length} child provisions; open Publication
+                            preview for the full quotation.
+                          </p>
+                        )}
+                      </blockquote>
+                    )}
+                    {op.block && op.scope === l && (
+                      <blockquote>
+                        {op.block.type === 'table' ? (
+                          <p>Whole-table replacement · {op.block.rows?.length} rows</p>
+                        ) : (
+                          op.block.inlines.map((i) => i.text).join('')
+                        )}
+                      </blockquote>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {op.block && op.scope === 'shared' && (
+                <div className="shared-label">
+                  Shared {op.block.type} replacement · {op.block.rows?.length ?? 0} rows
+                </div>
+              )}
+              <button className="operation-edit" onClick={() => openPanel('Amendments')}>
+                Review amendment operation
+              </button>
+            </div>
+          ))}
         {n.children.map((c) => renderNode(c, depth + 1))}
         <div className={'language-pair ' + (layout === 'parallel' ? 'parallel' : '')}>
           {langs.map((l) => (
@@ -668,16 +825,18 @@ function App() {
         <span className="saved">{cacheStatus}</span>
       </header>
       <nav className="tabs" aria-label="Ribbon">
-        {['File', 'Home', 'Insert', 'Structure', 'References', 'Review', 'View'].map((t) => (
-          <button
-            aria-pressed={tab === t}
-            className={tab === t ? 'active' : ''}
-            key={t}
-            onClick={() => setTab(t)}
-          >
-            {t}
-          </button>
-        ))}
+        {['File', 'Home', 'Insert', 'Structure', 'References', 'Amendments', 'Review', 'View'].map(
+          (t) => (
+            <button
+              aria-pressed={tab === t}
+              className={tab === t ? 'active' : ''}
+              key={t}
+              onClick={() => setTab(t)}
+            >
+              {t}
+            </button>
+          ),
+        )}
         <div className="tab-spacer" />
         <button onClick={() => (preview ? setPreview(null) : void showPreview())}>
           {preview ? '← Back to writing' : '▧ Publication preview'}
@@ -760,7 +919,10 @@ function App() {
             )}
             {group(
               'References',
-              tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗'),
+              <>
+                {tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗')}
+                {tool('Defined names', () => openPanel('Defined names'), !editable, '≔')}
+              </>,
             )}
           </>
         )}
@@ -777,6 +939,10 @@ function App() {
               </>,
             )}
             {group(
+              'Figures',
+              tool('Image', () => openPanel('Insert image'), !editable || !chosen, '▧'),
+            )}
+            {group(
               'Tables',
               <>
                 {tool('Table', () => addBlock('table'), !editable, '▦')}
@@ -785,7 +951,10 @@ function App() {
             )}
             {group(
               'References',
-              tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗'),
+              <>
+                {tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗')}
+                {tool('Defined names', () => openPanel('Defined names'), !editable, '≔')}
+              </>,
             )}
           </>
         )}
@@ -815,7 +984,10 @@ function App() {
           <>
             {group(
               'References',
-              tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗'),
+              <>
+                {tool('Insert reference', () => openPanel('Insert reference'), !editable, '↗')}
+                {tool('Defined names', () => openPanel('Defined names'), !editable, '≔')}
+              </>,
             )}
             {group(
               'Sources',
@@ -833,6 +1005,24 @@ function App() {
               'Checks',
               tool('Review document', () => openPanel('Review'), false, '✓'),
             )}
+          </>
+        )}
+        {tab === 'Amendments' && (
+          <>
+            {group(
+              'Amendment instrument',
+              tool(
+                project.amendment ? 'Compose amendments' : 'Create amendment',
+                () => openPanel('Amendments'),
+                false,
+                '§',
+              ),
+            )}
+            <p className="ribbon-help">
+              Insert, omit or substitute against an exact source.
+              <br />
+              Review proposed changes before adoption.
+            </p>
           </>
         )}
         {tab === 'Review' && (
@@ -946,7 +1136,11 @@ function App() {
         )}
         <main className="writing" aria-label={preview ? 'Publication preview' : 'Document editor'}>
           {preview ? (
-            <iframe title="Publication preview — not certified" sandbox="" srcDoc={preview} />
+            <iframe
+              title="Publication preview — not certified"
+              sandbox=""
+              srcDoc={preview.replaceAll('href="#', 'href="about:srcdoc#')}
+            />
           ) : (
             <>
               <div className="canvas-meta">
@@ -1020,6 +1214,47 @@ function App() {
                 {formError}
               </p>
             )}
+            {panel === 'Amendments' && (
+              <AmendmentPanel
+                project={project}
+                base={amendmentBase}
+                onLoad={() => baseFile.current?.click()}
+                onCreate={(p) => {
+                  replace(p, { new: true, base: project, panel: 'Amendments' });
+                }}
+                onCommit={(p) => {
+                  if (live.current !== project) {
+                    setNotice(
+                      'The draft changed during checking. Review and add the operation again.',
+                    );
+                    return;
+                  }
+                  commit(p);
+                }}
+                onNotice={setNotice}
+                onPreview={(state) => {
+                  try {
+                    setPreview(
+                      renderHTML(
+                        preparePublication(
+                          { ...state, history: [] },
+                          [workspaceIndex(state), ...lockedIndexes(state.project)],
+                          location.href,
+                          true,
+                        ),
+                        layout,
+                      ),
+                    );
+                    setPanel('');
+                    setNotice(
+                      'Proposed amended text — not in force. Operation history is available in the amendment panel.',
+                    );
+                  } catch (e) {
+                    setNotice((e as Error).message);
+                  }
+                }}
+              />
+            )}
             {panel === 'New guide' && (
               <form
                 onSubmit={(e) => {
@@ -1030,7 +1265,7 @@ function App() {
                   p.titles = { en: String(data.get('en')), 'zh-Hant': String(data.get('zh')) };
                   p.mode = String(data.get('mode')) as Project['mode'];
                   p.authority = p.mode === 'bilingual' ? 'both' : p.mode;
-                  replace(p);
+                  replace(p, { new: true });
                 }}
               >
                 <label>
@@ -1107,6 +1342,20 @@ function App() {
                 {activeLanguages(project).map((l) => (
                   <div key={l}>
                     <h3>{l === 'en' ? 'English opening' : '中文引言'}</h3>
+                    <button
+                      disabled={!editable}
+                      onClick={() =>
+                        edit((p) => {
+                          (p.opening.recitals[l] ??= []).push({
+                            id: uid(),
+                            type: 'p',
+                            inlines: [],
+                          });
+                        })
+                      }
+                    >
+                      ＋ {l === 'en' ? 'Recital' : '序言'}
+                    </button>
                     {(['longTitle', 'formula', 'authentication'] as const).map((k) => (
                       <label key={k}>
                         {k === 'longTitle'
@@ -1221,10 +1470,253 @@ function App() {
                   Draft labels can be edited. Review detects duplicates; published sources cannot be
                   renumbered here.
                 </p>
+                <button
+                  disabled={!editable}
+                  onClick={() =>
+                    edit((p) => {
+                      const n = walk(p.provisions).find((n) => n.id === selected)!;
+                      (n.tail[langs[0]] ??= []).push({ id: uid(), type: 'p', inlines: [] });
+                    })
+                  }
+                >
+                  ＋ Trailing parent text
+                </button>
+                <button
+                  disabled={!editable}
+                  onClick={() =>
+                    edit((p) => {
+                      const ids = new Set(walk([chosen]).map((n) => n.id));
+                      if (
+                        referenceValues(p).some(
+                          (r) =>
+                            r.document === p.id &&
+                            r.publisher === p.publisher &&
+                            r.target &&
+                            ids.has(r.target),
+                        )
+                      )
+                        throw new Error(
+                          'This provision is referenced. Remove its references before deleting it.',
+                        );
+                      if (p.amendment?.operations.some((op) => ids.has(op.author)))
+                        throw new Error(
+                          'This clause authors an amendment operation. Remove the operation first.',
+                        );
+                      const remove = (ns: Provision[]): Provision[] =>
+                        ns
+                          .filter((n) => n.id !== selected)
+                          .map((n) => ({ ...n, children: remove(n.children) }));
+                      p.provisions = remove(p.provisions);
+                    })
+                  }
+                >
+                  Remove draft provision (can undo)
+                </button>
                 <details>
                   <summary>Permanent identity</summary>
                   <code>{chosen.id}</code>
                 </details>
+              </>
+            )}
+            {panel === 'Insert image' && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!figureFile || !chosen) return;
+                  try {
+                    if (
+                      !['image/png', 'image/jpeg'].includes(figureFile.type) ||
+                      figureFile.size > 8_000_000
+                    )
+                      throw new Error('Choose a PNG or JPEG smaller than 8 MB.');
+                    const imageSource = await new Promise<string>((resolve, reject) => {
+                      const r = new FileReader();
+                      r.onload = () => resolve(String(r.result).split(',')[1]);
+                      r.onerror = () => reject(new Error('Could not read the image.'));
+                      r.readAsDataURL(figureFile);
+                    });
+                    edit((p) => {
+                      const n = walk(p.provisions).find((n) => n.id === selected);
+                      if (!n) throw new Error('The selected provision no longer exists.');
+                      const asset = uid();
+                      p.assets[asset] = {
+                        mediaType: figureFile.type as 'image/png' | 'image/jpeg',
+                        data: imageSource,
+                      };
+                      const b: Block = {
+                        id: uid(),
+                        type: 'figure',
+                        asset,
+                        alt: figureAlt,
+                        inlines: [],
+                      };
+                      if (figureShared) (n.shared ??= []).push(b);
+                      else (n.content[langs[0]] ??= []).push(b);
+                    });
+                    setFigureFile(null);
+                    setFigureAlt('');
+                    setPanel('');
+                  } catch (e) {
+                    setFormError((e as Error).message);
+                  }
+                }}
+              >
+                <label>
+                  Image file
+                  <input
+                    required
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={(e) => setFigureFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <label>
+                  Alternative text
+                  <textarea
+                    required
+                    value={figureAlt}
+                    onChange={(e) => setFigureAlt(e.target.value)}
+                  />
+                </label>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={figureShared}
+                    onChange={(e) => setFigureShared(e.target.checked)}
+                  />{' '}
+                  Shared across both languages
+                </label>
+                <p className="hint">
+                  The image is embedded in the project file. No upload is made.
+                </p>
+                <button className="primary">Insert image</button>
+              </form>
+            )}
+            {panel === 'Defined names' && (
+              <>
+                <p className="hint">
+                  Definitions supply consistent wording for terms and document names. They do not
+                  replace ordinary typed prose.
+                </p>
+                {project.definitions.map((d) => (
+                  <div className="definition-editor" key={d.id}>
+                    {(['en', 'zh-Hant'] as const).map((l) => (
+                      <React.Fragment key={l}>
+                        <label>
+                          {l === 'en' ? 'English name' : '中文名稱'}
+                          <input
+                            value={d.names[l] ?? ''}
+                            onChange={(e) =>
+                              edit(
+                                (p) => {
+                                  p.definitions.find((v) => v.id === d.id)!.names[l] =
+                                    e.target.value;
+                                },
+                                d.id + l + 'name',
+                              )
+                            }
+                          />
+                        </label>
+                        {!d.document && (
+                          <label>
+                            {l === 'en' ? 'Meaning' : '釋義'}
+                            <textarea
+                              value={d.meaning[l] ?? ''}
+                              onChange={(e) =>
+                                edit(
+                                  (p) => {
+                                    p.definitions.find((v) => v.id === d.id)!.meaning[l] =
+                                      e.target.value;
+                                  },
+                                  d.id + l + 'meaning',
+                                )
+                              }
+                            />
+                          </label>
+                        )}
+                      </React.Fragment>
+                    ))}
+                    <label>
+                      Meaning refers to
+                      <select
+                        value={d.document ?? ''}
+                        onChange={(e) =>
+                          edit((p) => {
+                            const def = p.definitions.find((v) => v.id === d.id)!;
+                            if (!e.target.value) {
+                              delete def.document;
+                              delete def.publisher;
+                            } else {
+                              const idx = lockedIndexes(p).find((i) => i.id === e.target.value)!;
+                              def.document = idx.id;
+                              def.publisher = idx.publisher;
+                            }
+                          })
+                        }
+                      >
+                        <option value="">An explanation</option>
+                        {sourceIndexes
+                          .filter((i) => i.stage === 'adopted')
+                          .map((i) => (
+                            <option key={i.publisher + i.id} value={i.id}>
+                              {i.titles.en}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <button
+                      disabled={!chosen}
+                      onClick={() =>
+                        edit((p) => {
+                          const n = walk(p.provisions).find((n) => n.id === selected)!;
+                          for (const l of activeLanguages(p))
+                            (n.content[l] ??= []).push({
+                              id: uid(),
+                              type: 'definition',
+                              definition: d.id,
+                              inlines: [],
+                            });
+                        })
+                      }
+                    >
+                      Insert definition in selected provision
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!focused.current || focused.current.isDestroyed) {
+                          setNotice('Place the cursor in a text block first.');
+                          return;
+                        }
+                        focused.current
+                          .chain()
+                          .focus()
+                          .insertContent({
+                            type: 'citation',
+                            attrs: {
+                              value: { text: d.names[focusedLanguage.current] ?? '', term: d.id },
+                            },
+                          })
+                          .run();
+                      }}
+                    >
+                      Insert defined term at cursor
+                    </button>
+                  </div>
+                ))}
+                <button
+                  className="primary"
+                  onClick={() =>
+                    edit((p) => {
+                      p.definitions.push({
+                        id: uid(),
+                        names: { en: '', 'zh-Hant': '' },
+                        meaning: { en: '', 'zh-Hant': '' },
+                      });
+                    })
+                  }
+                >
+                  ＋ Define a name
+                </button>
               </>
             )}
             {panel === 'Review' && (
@@ -1263,8 +1755,7 @@ function App() {
                 {project.amendment && (
                   <div className="hint">
                     This instrument contains {project.amendment.operations.length} amendment
-                    operations. The operation payloads are preserved; the dedicated amendment
-                    composer is not yet available.
+                    operations. Open the Amendments ribbon to compose or review them.
                   </div>
                 )}
               </>
@@ -1403,6 +1894,55 @@ function App() {
           {zoom}%
         </label>
       </footer>
+      {pendingOpen && (
+        <div className="modal-scrim">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="replace-title"
+            className="replace-dialog"
+          >
+            <h2 id="replace-title">Open another document?</h2>
+            <p>Your current workspace has changes that have not been downloaded.</p>
+            <div>
+              <button autoFocus onClick={() => setPendingOpen(null)}>
+                Keep editing
+              </button>
+              <button
+                onClick={() => {
+                  save();
+                  replace(pendingOpen.p, pendingOpen.options, true);
+                }}
+              >
+                Download current and continue
+              </button>
+              <button onClick={() => replace(pendingOpen.p, pendingOpen.options, true)}>
+                Continue without download
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      <input
+        hidden
+        ref={baseFile}
+        type="file"
+        accept=".json"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          try {
+            if (f.size > 20_000_000) throw new Error('Source exceeds 20 MB.');
+            const base = parseProject(await f.text());
+            if (base.stage !== 'adopted' || base.role !== 'principal')
+              throw new Error('Select an adopted principal source.');
+            setAmendmentBase(base);
+          } catch (err) {
+            setNotice((err as Error).message);
+          }
+          e.target.value = '';
+        }}
+      />
       <input
         hidden
         ref={file}

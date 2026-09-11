@@ -9,11 +9,11 @@ const Citation = Node.create({
   group: 'inline',
   inline: true,
   atom: true,
-  addAttributes: () => ({ value: { default: { text: '' } } }),
+  addAttributes: () => ({ value: { default: { text: '' } }, label: { default: '' } }),
   renderHTML: ({ node }) => [
     'span',
     { class: 'citation', title: 'Structured reference; select to replace' },
-    node.attrs.value.text || 'Reference',
+    node.attrs.label || node.attrs.value.text || 'Reference',
   ],
 });
 const Sup = Mark.create({ name: 'superscript', renderHTML: () => ['sup', 0] });
@@ -25,6 +25,7 @@ export function RichText({
   onChange,
   onFocus,
   onNotice,
+  resolveLabel,
 }: {
   value: Inline[];
   label: string;
@@ -32,6 +33,7 @@ export function RichText({
   onChange: (v: Inline[]) => void;
   onFocus: (e: Editor) => void;
   onNotice: (s: string) => void;
+  resolveLabel?: (i: Inline) => string;
 }) {
   const callbacks = useRef({ onChange, onFocus, onNotice });
   callbacks.current = { onChange, onFocus, onNotice };
@@ -54,7 +56,7 @@ export function RichText({
       Sup,
       Sub,
     ],
-    content: toRich(value),
+    content: toRich(value, resolveLabel),
     editable,
     enableInputRules: false,
     enablePasteRules: false,
@@ -80,9 +82,20 @@ export function RichText({
     onFocus: ({ editor }) => callbacks.current.onFocus(editor),
   });
   useEffect(() => {
-    if (editor && canonical(fromRich(editor.getJSON())) !== canonical(value))
-      editor.commands.setContent(toRich(value), { emitUpdate: false });
-  }, [editor, value]);
+    if (editor && !editor.view.composing) {
+      const desired = toRich(value, resolveLabel);
+      const current = fromRich(editor.getJSON());
+      const labelsChanged = (editor.getJSON().content?.[0]?.content ?? []).some(
+        (n) =>
+          n.type === 'citation' &&
+          'attrs' in n &&
+          resolveLabel &&
+          n.attrs?.label !== resolveLabel(n.attrs!.value),
+      );
+      if (canonical(current) !== canonical(value) || labelsChanged)
+        editor.commands.setContent(desired, { emitUpdate: false });
+    }
+  }, [editor, value, resolveLabel]);
   useEffect(() => {
     editor?.setEditable(editable, false);
   }, [editor, editable]);

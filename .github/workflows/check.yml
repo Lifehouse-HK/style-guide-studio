@@ -1,4 +1,4 @@
-name: Headless checks
+name: Module and editor checks
 on:
   push:
   pull_request:
@@ -27,6 +27,7 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
+      - run: npm run build:editor
       - run: npx tsx tools/benchmark.ts
       - run: npx tsx tools/render-specimens.ts
       - run: .venv/bin/python tools/qualify.py

@@ -114,7 +114,7 @@ const toMark: Record<string, string> = {
 };
 const fromMark = Object.fromEntries(Object.entries(toMark).map(([a, b]) => [b, a]));
 /** Inline references/terms/links are atoms: ordinary typing cannot discard their identities. */
-export function toRich(xs: Inline[]): JSONContent {
+export function toRich(xs: Inline[], label?: (inline: Inline) => string): JSONContent {
   return {
     type: 'doc',
     content: [
@@ -124,7 +124,7 @@ export function toRich(xs: Inline[]): JSONContent {
           .filter((i) => i.text || i.ref || i.term || i.href)
           .map((i) =>
             i.ref || i.term || i.href
-              ? { type: 'citation', attrs: { value: i } }
+              ? { type: 'citation', attrs: { value: i, ...(label ? { label: label(i) } : {}) } }
               : { type: 'text', text: i.text, marks: i.marks?.map((m) => ({ type: toMark[m] })) },
           ),
       },
