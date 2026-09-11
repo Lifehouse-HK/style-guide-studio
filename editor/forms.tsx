@@ -1,3 +1,10 @@
+import {
+  alignments,
+  alignSelection,
+  editText,
+  paragraphRange,
+  type Alignment,
+} from '../modules/text-formatting.ts';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   allowed,
@@ -227,10 +234,11 @@ function TextField({
   guide: Guide;
   catalogues: Catalogue[];
   lang: 'en' | 'zh';
-  align: 'left' | 'center' | 'right';
-  onAlign: (value: 'left' | 'center' | 'right') => void;
+  align: Alignment[];
+  onAlign: (value: Alignment, start: number, end: number) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null),
+    [selection, setSelection] = useState<[number, number]>([0, 0]),
     [picker, setPicker] = useState(false),
     [key, setKey] = useState('');
   function put(before: string, after = '') {
@@ -261,8 +269,21 @@ function TextField({
             key={value}
             type="button"
             aria-label={`Align ${value}`}
-            aria-pressed={align === value}
-            onClick={() => onAlign(value)}
+            aria-pressed={(() => {
+              const [a, b] = paragraphRange(ref.current?.value ?? '', ...selection);
+              return align.slice(a, b + 1).every((v) => v === value);
+            })()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              const ta = ref.current!;
+              const start = ta.selectionStart,
+                end = ta.selectionEnd;
+              onAlign(value, start, end);
+              requestAnimationFrame(() => {
+                ta.focus();
+                ta.setSelectionRange(start, end);
+              });
+            }}
           >
             <Icon name={`text-${value}`} />
           </button>
@@ -291,6 +312,10 @@ function TextField({
           <Icon name="link-45deg" /> Reference
         </button>
       </div>
+      <small className="hint">
+        Alignment applies to the current or selected paragraphs. Enter starts a paragraph; proof
+        shows alignment.
+      </small>
       {picker && (
         <div className="reference-picker">
           <select
@@ -330,7 +355,9 @@ function TextField({
       )}
       <textarea
         ref={ref}
-        style={{ textAlign: align }}
+        onSelect={(e) =>
+          setSelection([e.currentTarget.selectionStart, e.currentTarget.selectionEnd])
+        }
         aria-label={label}
         rows={7}
         value={value}
@@ -476,9 +503,11 @@ export function NodeFields({
                     label={l === 'en' ? 'English text' : '繁體中文文本'}
                     value={b.text[l]}
                     lang={l}
-                    align={b.align?.[l] ?? 'left'}
-                    onAlign={(align) => updateBlock({ ...b, align: { ...b.align, [l]: align } })}
-                    onChange={(text) => updateBlock({ ...b, text: { ...b.text, [l]: text } })}
+                    align={alignments(b, l)}
+                    onAlign={(align, start, end) =>
+                      updateBlock(alignSelection(b, l, start, end, align))
+                    }
+                    onChange={(text) => updateBlock(editText(b, l, text))}
                     guide={guide}
                     catalogues={catalogues}
                   />

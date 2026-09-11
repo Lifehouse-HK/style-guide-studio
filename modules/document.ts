@@ -45,6 +45,7 @@ export type TextBlock = {
   type: 'text' | 'quote' | 'note';
   text: Pair;
   align?: Partial<Record<Language, 'left' | 'center' | 'right'>>;
+  paragraphAlign?: Partial<Record<Language, ('left' | 'center' | 'right')[]>>;
 };
 export type Table = {
   id: string;
@@ -70,6 +71,13 @@ const blockSchema = z.union([
       id: z.string().min(1),
       type: z.enum(['text', 'quote', 'note']),
       text: paired,
+      paragraphAlign: z
+        .object({
+          en: z.array(z.enum(['left', 'center', 'right'])).optional(),
+          zh: z.array(z.enum(['left', 'center', 'right'])).optional(),
+        })
+        .strict()
+        .optional(),
       align: z
         .object({
           en: z.enum(['left', 'center', 'right']).optional(),

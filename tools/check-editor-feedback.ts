@@ -9,7 +9,10 @@ sub.blocks = [
   {
     id: 'child-text',
     type: 'text',
-    text: pair('Preview of subordinate provision', '附屬條文預覽'),
+    text: pair(
+      'Preview of subordinate provision\nSecond paragraph\nThird paragraph',
+      '附屬條文預覽',
+    ),
   },
 ];
 g.nodes[0].children[0].children = [sub];
@@ -46,13 +49,20 @@ try {
   assert.match(location!, /Part 1 \/ Section 1/);
   await page.click('.data-table tbody button');
   await page.waitForFunction(() =>
-    document.body.textContent?.includes('Preview of subordinate provision'),
+    document.body.textContent?.includes(
+      'Preview of subordinate provision\nSecond paragraph\nThird paragraph',
+    ),
   );
   assert.equal(await page.$eval('.breadcrumb', (b) => b.querySelectorAll('button').length), 3);
   await page.click('.child-section tbody button');
   await page.waitForSelector('button[aria-label="Underline"]');
+  await page.$eval('textarea[aria-label="English text"]', (el) => {
+    const t = el as HTMLTextAreaElement;
+    t.focus();
+    t.setSelectionRange(t.value.indexOf('Second') + 2, t.value.indexOf('Second') + 5);
+  });
   await page.click('button[aria-label="Align center"]');
-  await page.click('button[aria-label="Insert em dash"]');
+
   await click('Save provision');
   await page.click('.breadcrumb button:nth-of-type(1)');
   await click('Proof');
@@ -68,6 +78,14 @@ try {
       document.querySelector('#proof-frame') as HTMLIFrameElement
     ).contentDocument?.body.classList.contains('parallel'),
   );
+  const paragraphs = await page.$eval('#proof-frame', (el) =>
+    [...(el as HTMLIFrameElement).contentDocument!.querySelectorAll('p')]
+      .filter((p) => p.textContent?.includes('paragraph') || p.textContent?.includes('Preview'))
+      .map((p) => ({ text: p.textContent, align: p.style.textAlign })),
+  );
+  assert.equal(paragraphs.find((p) => p.text?.includes('Preview'))?.align, 'left');
+  assert.equal(paragraphs.find((p) => p.text?.includes('Second'))?.align, 'center');
+  assert.equal(paragraphs.find((p) => p.text?.includes('Third'))?.align, 'left');
   for (const height of [800, 650]) {
     await page.setViewport({ width: 1280, height });
     assert.equal(

@@ -1,3 +1,4 @@
+import { editText } from './text-formatting.ts';
 import { z } from 'zod';
 import {
   checkEnactment,
@@ -234,8 +235,14 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
       ]);
       if (!boundaries.has(at) || !boundaries.has(at + a.find.length))
         throw Error('The selection splits a character.');
-      b.text[a.language] =
-        text.slice(0, at) + (a.replacement ?? '') + text.slice(at + a.find.length);
+      Object.assign(
+        b,
+        editText(
+          b,
+          a.language,
+          text.slice(0, at) + (a.replacement ?? '') + text.slice(at + a.find.length),
+        ),
+      );
       break;
     }
     case 'replace-table': {

@@ -36,3 +36,8 @@ No implementation phase is active. Next ready action is user evaluation of the r
 - Domain/render tests added for optional Schedule headings and aligned/underlined unheaded provisions. Fresh suite: 15 passed.
 - Fresh type check, build and all 15 tests passed. Existing browser workflow passed. `tools/check-editor-feedback.ts` passed viewport-height checks at 1280×800 and 1280×650, child preview, clickable breadcrumbs/checks, formatting controls and bilingual/monolingual proof controls. Proof screenshot inspected. No PDF pagination changes; alignment is verified through the shared HTML/PDF renderer.
 - Follow-up: proof frames are recreated when generated HTML changes, avoiding a stale rendered language after changing view. The browser check now waits for the iframe’s actual parallel body, not only its `srcdoc` attribute; passed and the two-column proof screenshot was inspected.
+
+## Paragraph alignment correction — 2026-09-12
+
+- [x] F2: Scope alignment to the cursor paragraph or selected paragraphs rather than the whole text block. Source and renderer preserve per-language paragraph alignment; text editing and amendment substitutions remap formatting around inserted/deleted newlines. Existing block-wide settings remain a fallback for saved documents.
+- Fresh 17-test suite passed, including selection boundaries, other-language isolation and split/merge inheritance. Type check/build passed. Browser feedback story checks selecting within the middle of three paragraphs and confirms rendered left/centre/left alignment.

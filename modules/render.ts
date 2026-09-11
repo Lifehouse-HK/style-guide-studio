@@ -1,3 +1,4 @@
+import { alignments } from './text-formatting.ts';
 import {
   address,
   entries,
@@ -10,6 +11,7 @@ import {
   type Pair,
   type Language,
   type Block,
+  type TextBlock,
 } from './document.ts';
 import { generate, type Document, type Amendment, type Revision } from './amendments.ts';
 import { resolve, type Catalogue } from './references.ts';
@@ -85,13 +87,21 @@ export async function render(
           `<tr>${b.numbered ? `<td>${i + 1}</td>` : ''}${r.map((c) => `<td>${fmt(c, langs[0])}</td>`).join('')}</tr>`,
       )
       .join('')}</tbody></table>`;
+  const paragraphs = (b: TextBlock, l: Language, prefix = '') => {
+    const alignment = alignments(b, l);
+    return b.text[l]
+      .split('\n')
+      .map(
+        (text, i) =>
+          `<p style="text-align:${alignment[i]}"${b.type === 'note' ? ' class="note"' : ''}>${i === 0 ? prefix : ''}${fmt(text, l) || '<br>'}</p>`,
+      )
+      .join('');
+  };
   const block = (b: Block) =>
     b.type === 'table'
       ? `<div class="shared">${table(b)}</div>`
       : paired((l) =>
-          b.type === 'quote'
-            ? `<blockquote style="text-align:${b.align?.[l] ?? 'left'}">${fmt(b.text[l], l)}</blockquote>`
-            : `<p style="text-align:${b.align?.[l] ?? 'left'}"${b.type === 'note' ? ' class="note"' : ''}>${fmt(b.text[l], l)}</p>`,
+          b.type === 'quote' ? `<blockquote>${paragraphs(b, l)}</blockquote>` : paragraphs(b, l),
         );
   function node(n: Node, quoted = false): string {
     const headingLabel = (l: Language) =>
@@ -114,9 +124,10 @@ export async function render(
             `<p>${numbered ? `<span class="number">(${esc(n.label)})</span>` : ''}${l === 'en' ? '[Repealed]' : '[已廢除]'}</p>`,
         )
       : (numbered
-          ? paired(
-              (l) =>
-                `<p style="text-align:${first && first.type !== 'table' ? (first.align?.[l] ?? 'left') : 'left'}"><span class="number">(${esc(n.label)})</span>${first && first.type === 'text' ? fmt(first.text[l], l) : ''}</p>`,
+          ? paired((l) =>
+              first && first.type === 'text'
+                ? paragraphs(first, l, `<span class="number">(${esc(n.label)})</span>`)
+                : `<p><span class="number">(${esc(n.label)})</span></p>`,
             )
           : '') +
         (n.blocks ?? [])
