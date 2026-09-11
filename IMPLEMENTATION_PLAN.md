@@ -199,3 +199,9 @@ There is enough information to plan all phases now. Q01/Q02 gate dependent imple
 - Automated host checks: `npm test`, four tests passed (manual labels/order, duplicate addresses, paired titles, safe schema handling, canonical key order); `npm run check`, passed.
 - These are model checks only. No browser/UI, AKN schema, PDF viewer, remote CI or release claim yet.
 - Latest user scope: continue headless implementation, stop before constructing editor UI for design discussion.
+
+### V07 — portable format qualification — 2026-09-11
+
+- Automated host/model checks: `npm run check` and `npm test` passed (six tests). Bilingual fixture and one shared table survived project save/reopen and both AKN expression round trips; lxml validated each against the vendored OASIS schema. Changed XML, malformed XML and DTD/entity imports were rejected.
+- D02 profile now records English/HK grouping distinctions, front/body/end mappings, project extension ownership and unsupported foreign-AKN import. D04 is partial: sample round trips pass; stress budgets and broader fixture coverage remain.
+- No browser/viewer or CI claim. No editor UI was constructed.

@@ -17,6 +17,8 @@ The user has asked to pause **before building the editor UI**, to discuss its de
 
 ## Development
 
-Use Node 24 and npm: `npm ci`, then `npm run check` and `npm test`. Dependencies are pinned in `package-lock.json`. Python PDF qualification dependencies are pinned in `requirements.lock`; install them into an isolated Python environment. Renderer setup and qualification evidence will be added with the adapter.
+Use Node 24 and npm: `npm ci`, then `npm run check`. Create `.venv` with Python 3.14 and run `.venv/bin/pip install -r requirements.lock` before `npm test`, which includes AKN schema checks. Dependencies are pinned in `package-lock.json`. Python PDF qualification dependencies are pinned in `requirements.lock`; install them into an isolated Python environment. Renderer setup and qualification evidence will be added with the adapter.
 
 The canonical `.sg.json` project belongs to the domain, not the editor. AKN language expressions are interchange outputs. The editor and rendering engine are separate modules in this repository. No paid service, font, renderer or editor extension is required.
+
+Portable persistence supports project save/open and project-preserving AKN exports/imports in both languages. See [the profile](docs/document-profile.md) for supported vocabulary and explicit foreign-import limitations.
