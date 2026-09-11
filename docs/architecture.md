@@ -83,32 +83,33 @@ There are no provision-specific effective dates. Every operation in an amendment
 
 ## 5. Structural document profile
 
+The [2026-09-12 authoring and enactment decisions](decisions/002-authoring-profile-and-enactment.md) supersede conflicting earlier terminology and profile proposals. They record the exact bilingual formula, removed structures, non-blocking draft numbering checks and generated amendment authoring.
+
 Ordered regions:
 
 1. Metadata and front matter: paired formal titles, status, adoption/revision information, generated arrangement of provisions, optional long title.
 2. Optional preamble containing individually identifiable recitals.
-3. Adoption/enacting formula.
+3. Enacting formula.
 4. Operative body.
 5. Optional Schedules.
-6. Optional authentication block.
-7. Optional informative Appendices.
-8. Generated editorial material and history.
+6. Optional informative Appendices.
+7. Generated editorial material and history (visible history presentation pending user choice).
 
-Long title describes purpose (e.g. “A Guide to…”); recital text supplies background (“WHEREAS…”); the formula introduces adoption (“BE IT ADOPTED/ENACTED…”). Formula wording is controlled profile content. Metadata, not formula text, determines effect.
+Long title defaults to “A Style Guide to” and remains editable. The optional preamble is one paragraph or an automatically numbered recital list. The enacting formula is prefilled from the recorded bilingual default and editable in a draft for contingency, but cannot be amended after enactment. Metadata, not formula text, determines effect.
 
 The [drafting structure audit](drafting-structure-audit.md) records the government-source findings and required corrections. In particular, heading eligibility is context-specific; a subsection does not receive a structural title. The generic implementation is not a conforming realisation of this hierarchy.
 
 Body hierarchy:
 
 - Optional grouping containers: Parts and subordinate grouping types selected by the nomenclature profile.
-- Optional unnumbered cross-headings.
+- No Chapters or cross-headings in new authoring. Optional grouping path: Part → Division → Subdivision.
 - Section (adopted) / clause (draft): explicit number, e.g. 5 or 5A.
 - Subsection: explicit label, e.g. (1) or (1A).
 - Paragraph: explicit label, e.g. (a) or (aa).
 - Sub-paragraph: explicit label, e.g. (i).
 - Exceptional deeper subdivision: a distinct structural type with profile-defined terminology and labels, not an inferred list level.
 
-Section labels are unique throughout the body, not restarted by Parts. Child labels are unique within a parent. Source order is authoritative: never sort or renumber provisions automatically. Duplicate addresses are errors; gaps are allowed. The label grammar is profile-owned and accommodates deliberate inserted labels without numerical arithmetic.
+Section labels are unique throughout the body, not restarted by Parts. Child labels are unique within a parent. Source order is authoritative: never sort or renumber provisions automatically. Gaps are allowed. Numbering form, duplicates and order produce non-blocking draft diagnostics: retain entered values and allow draft saves and moves. Ambiguous public addresses still require an explicit certification policy. The label grammar is profile-owned and accommodates deliberate inserted labels without numerical arithmetic.
 
 Containers hold ordered content, including introductory prose, subdivisions and concluding prose. A sentence after a nested list remains attached to the correct parent. A prose paragraph and a legislative paragraph are different types. A section may contain direct prose instead of subsections.
 
@@ -186,7 +187,7 @@ Published HTML contains resolved ordinary links and needs no catalogue fetch to 
 
 Exactly three core textual/structural operations: insert, omit/repeal, substitute. They work on precise text ranges or whole structural content, subject to the whole-table rule. No published renumber, move, split or merge operations. Drafts may be reorganised before adoption. Published restructuring uses explicit repeal and insertion; no inferred identity redirection.
 
-Each operation records permanent identity, authorising amendment provision, target document/node, language scope, expected prior revision/content, exact location, old/new payload as applicable, and sequence within its instrument. A human description is not executable code. Instruction wording and its replacement quotation are generated/reviewed expressions of the recorded operation. Free-form qualifications cannot silently alter executable effects.
+Each operation records permanent identity, authorising amendment provision, target document/node, language scope, expected prior revision/content, exact location, old/new payload as applicable, and sequence within its instrument. A human description is not executable code. Operative headings, instruction wording and replacement quotations are generated, read-only expressions of recorded actions. Users edit action parameters and payloads, not generated provisions. Amendment instruments have a dedicated action workspace; see the recorded HK-based generation requirements. Free-form qualifications cannot silently alter executable effects.
 
 For text selections, store the expected revision, target node, exact selected content and context plus an unambiguous range. Never use global replacement or first-string-match against a newer text. Draft tooling may propose retargeting; approval requires explicit review. Multiple-match and precondition failures stop application.
 

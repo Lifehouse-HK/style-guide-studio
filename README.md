@@ -4,6 +4,8 @@ A structured authoring and publishing system for church style guides, with legis
 
 The current WYSIWYG editor has been rejected and is awaiting a structural rebuild. The [government drafting audit](docs/drafting-structure-audit.md) records model/rendering defects and the required form-based replacement; current features below do not imply drafting conformance.
 
+The [confirmed authoring profile and bilingual enacting formula](docs/decisions/002-authoring-profile-and-enactment.md) record the 2026-09-12 decisions, including 夢幻團隊, generated amendment provisions and non-blocking numbering checks. These are rebuild requirements, not implemented feature claims.
+
 ## Implemented modules
 
 - **Editor:** local desktop authoring; adopted/withdrawn sources open read-only. See [editor operation and current limits](docs/editor.md).

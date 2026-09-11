@@ -1,6 +1,6 @@
 # Implementation plan
 
-Last updated: 2026-09-11.
+Last updated: 2026-09-12.
 
 This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements live in [the architecture](docs/architecture.md); technology proposals live in [the technology discussion](docs/technology-decisions.md). A documented proposal is not an approved decision or an implemented feature.
 
@@ -11,7 +11,7 @@ This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements 
 - Current primary phase: **P4, static desktop editor implementation**. P3 qualification remains incomplete and inactive. P0–P2 have implemented portions with outstanding cross-cutting qualification; they are not marked fully complete.
 - Selected PDF path: free Chromium/Puppeteer, fontTools and pypdf after WeasyPrint failed long parallel tests. Each bilingual source produces separate portrait English/Chinese documents and one provision-aligned landscape document with shared tables spanning both columns once.
 - Host tests, module compilation, synthetic headless publication and sampled PDF qualification have passed. Full viewer/CORS/CI checks and the complete fixture matrix remain open; see V09 and the explicit follow-ups below.
-- Active action: U01, structural correction and authoring rebuild as specified in V15. Requested typography, icon-font, numbering discovery and Part amendment qualification are recorded in V12–V13. Remaining P3 checks still gate release; they do not prevent the authorised UI work.
+- Active action: U01, structural correction and authoring rebuild as specified in V15–V16. Requested typography, icon-font, numbering discovery and Part amendment qualification are recorded in V12–V13. Remaining P3 checks still gate release; they do not prevent the authorised UI work.
 
 Markers: `[ ]` not started; `[~]` active; `[x]` complete with evidence; `[!]` blocked by a referenced question. Only one primary phase may be active.
 
@@ -280,3 +280,11 @@ There is enough information to plan all phases now. Q01/Q02/Q04 are resolved. Q0
 - Source audit found generic headings throughout schema/editor/renderer, incorrect Schedule nesting, incorrect Chinese deepest-level naming, and incomplete whole-document repeal authoring/proposed-event handling. These require coordinated model/reference/rendering changes before replacement UI implementation. The earlier generic editor is not accepted or conformant.
 - Added a focused whole-document repeal regression. All eight amendment tests passed via `npx tsx --test tests/amendments.test.ts`. It verifies adopted commencement, historical source preservation, history, invalid-precondition rejection, draft non-effect and rejection of later amendments. No UI, PDF or release qualification is claimed.
 - P4 remains the only active phase. Rebuild acceptance order: shared structural capabilities and compatibility → body/Schedule/reference/rendering fixtures → complete document-repeal workflow → fixed tree/forms and user workflow verification. No cosmetic redesign or product implementation in this audit.
+
+
+### V16 — confirmed structure, enacting formula and generated amendment requirements — 2026-09-12
+
+- Recorded the exact English/Chinese formula naming the Translation Team of the Dream Team / 香港生命堂夢幻團隊翻譯團隊; 神 and enactment terminology are required. No individual pastor is named. Formula edits are draft-only and the enacted formula cannot be amended.
+- Recorded removal of B/E/R/S, editable “A Style Guide to” long-title default, paragraph/auto-numbered recital modes, warning-only draft numbering checks and free draft section movement. Preserve immutable enacted sources and legacy import bytes. T is explained as generated editorial history, with visible presentation still awaiting user choice.
+- Read the retained official HK English drafting guide Chapters 14–15 (§§14.3, 15.2–15.3) for amendment arrangement and generated formulas. An attempted live web fetch timed out; the previously downloaded official PDF text was available and read. Amendments require a dedicated action workspace and read-only generated provisions; structured settings/payloads remain editable. Clause grouping must respect executable dependencies.
+- Updated architecture, profile, audit and README links. Documentation-only change; checked staged whitespace and local Markdown links. No product code, UI, tests, builds, deployment or source migration performed. P4 remains active; next implementation is the coordinated structural/generation correction, not more WYSIWYG controls.

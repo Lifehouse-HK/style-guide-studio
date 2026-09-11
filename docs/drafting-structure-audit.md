@@ -4,6 +4,8 @@ Date: 2026-09-11. Status: research and source audit; proposed church profile and
 
 The user rejected the WYSIWYG/ribbon authoring design. Functional correctness, predictable forms and accurate legislative structure take precedence over visual novelty. A compact tree, fixed forms and explicit actions are acceptable. No replacement interface is implemented by this audit.
 
+The [2026-09-12 user decisions](decisions/002-authoring-profile-and-enactment.md) supersede the proposed selection below: remove Chapters, cross-headings, authentication and explanatory components; apply the recorded enactment and generation rules.
+
 ## Government sources
 
 - [UK Office of the Parliamentary Counsel, Drafting Guidance](https://www.gov.uk/government/publications/drafting-bills-for-parliament/2024-03-19-drafting-guidance), official publication updated 4 April 2024: §§3.1, 3.4, 3.6, 3.8, 3.9 and 6.6.
