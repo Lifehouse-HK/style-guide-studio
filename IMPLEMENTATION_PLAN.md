@@ -1,6 +1,6 @@
 # Implementation plan
 
-Last updated: 2026-09-10.
+Last updated: 2026-09-11.
 
 This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements live in [the architecture](docs/architecture.md); technology proposals live in [the technology discussion](docs/technology-decisions.md). A documented proposal is not an approved decision or an implemented feature.
 
@@ -8,6 +8,7 @@ This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements 
 
 - Repository contains documentation and repository configuration only; no product implementation, build commands, automated product tests or CI pipelines exist.
 - Architecture proposal was committed in `13646ef`. That commit predates the repository's conventional-commit rule; preserve its published history and follow the rule for new commits.
+- Architecture approved by the user on 2026-09-11. All required components and the final product must have a comfortable free-of-charge path; Prince is no longer a candidate. Specific technologies remain unapproved. Evidence: V03.
 - Current phase: P0, design and technology discussion. No implementation phase is active.
 - Completed repository action: R01, adopt the contributor workflow and ignore local clutter. Evidence: V01 below.
 - Next action: D01, discuss and record technology decisions with the user. The earlier instruction to discuss technologies before application code remains in force.
@@ -40,7 +41,7 @@ These are dependencies and acceptance gates, not authorisation to bypass the tec
 | --- | --- | --- |
 | Q01 | Canonical AKN was proposed earlier; bilingual shared objects, operations and dependency locks need a complete project container. Affects D01/D02/M01. | AKN plus manifest/resources, or a neutral canonical project format with validated AKN interchange? |
 | Q02 | Browser/headless reuse and structured editing were proposed, not approved. Affects D01 and implementation phases. | Confirm implementation language, editor foundation, UI framework and validating runtime. |
-| Q03 | Final PDFs require bilingual pagination and cross-file destinations. Affects D01/R02. | Are commercial dependencies acceptable, and should PDF execution be local/headless or also available through a configured service? |
+| Q03 | Cost resolved on 2026-09-11: all required functionality must be free. WeasyPrint is the leading candidate, not a verified choice. Affects D01/R02. | Decide whether a local PDF helper is acceptable or browser-only export is required; verify renderer quality, performance and links within the free constraint. |
 | Q04 | Public visibility does not grant a software licence. Affects D01/V02 and distribution readiness. | Select the software licence; publication-content rights remain separate. |
 
 Nomenclature and schema verification in D02 are research obligations, not extra permission gates. Record ambiguities and bring only material policy choices to the user.
@@ -55,6 +56,13 @@ Nomenclature and schema verification in D02 are research obligations, not extra 
 - Staged review: `git diff --cached --name-status` and `git diff --cached --check`. Result: intended paths only; no whitespace errors.
 - Product automated tests, simulator/model tests, actual UI/device checks and CI: not applicable to this documentation/configuration change; none are configured. No product or release-readiness claim is made.
 - Delivery: focused local commit. This action does not push or alter the previously published commit.
+
+### V03 — architecture approval and free operation requirement — 2026-09-11
+
+- User decision: full architecture approved; all components and the final product must run comfortably free of charge. Architecture approval does not resolve Q01/Q02/Q04 or the PDF execution choice in Q03.
+- Documentation research: reviewed official WeasyPrint licence/capability documentation, Tiptap core licence and pypdf annotation documentation. WeasyPrint remains a candidate; no PDF output, performance benchmark or viewer check was performed.
+- Local documentation checks: relative Markdown file links resolved successfully; `git diff --cached --name-status` showed only README, PLAN and the two design documents; `git diff --cached --check` passed.
+- No product tests or CI pipelines exist. Ignore rules were unchanged and their earlier validation was not repeated. No product implementation or push is part of this action.
 
 ## Follow-ups
 

@@ -1,10 +1,10 @@
 # Architecture: Style Guide Studio
 
-Status: proposed architecture for review before application implementation.
+Status: architecture approved by the user on 2026-09-11; technology selection remains under discussion.
 
-Date: 2026-09-10.
+Updated: 2026-09-11.
 
-This document defines behaviour and boundaries independently of programming languages, editor frameworks, storage libraries, hosting services and PDF products. Standards named here are document/interchange contracts, not technology selections. No application implementation accompanies this proposal.
+This document defines behaviour and boundaries independently of programming languages, editor frameworks, storage libraries, hosting services and PDF products. Standards named here are document/interchange contracts, not technology selections. No application implementation accompanies this architecture.
 
 ## 1. Purpose and repository boundary
 
@@ -13,6 +13,12 @@ Provide a static visual editor and a reusable publishing engine for legislative-
 Use one software repository, `Lifehouse-HK/style-guide-studio`, with independently consumable modules. A shared repository permits atomic changes to the document contract, engine and editor; independent modules prevent editor-specific dependencies from leaking into publishing. Split repositories only when independent ownership or release needs justify it. A separate repository would not by itself create a sound module boundary.
 
 The later document-collection repository will track drafts, adopted originals, amendment instruments, approval records, publication inputs and release manifests. It will consume versioned software releases and generate its own static website and catalogue. It will not contain a second implementation of the engine. Its name and creation are outside the present work.
+
+### Approved operating-cost requirement
+
+All required components and the complete product must have a comfortable free-of-charge operating path. No required paid licence, subscription, per-export fee, trial, watermark, paid font or paid editor extension. Required workflows must remain usable on existing local hardware without reliance on hosted free-tier quotas; hosted services may be optional conveniences only. Hosting, domains, electricity and hardware are not asserted to have zero real-world cost. A local publishing path must preserve complete output quality and functionality.
+
+Dependency and font licences must permit intended use and distribution. Performance and setup effort must be measured on agreed representative documents and ordinary hardware before claiming comfortable operation. The specific stack and numerical performance budgets are still to be selected.
 
 ## 2. Modules and dependency rules
 
