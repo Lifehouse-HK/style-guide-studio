@@ -2,23 +2,21 @@
 
 A structured authoring and publishing system for church style guides, with legislative numbering, formal amendments, bilingual documents and static reference catalogues.
 
-Maintained under Lifehouse-HK. This repository currently contains **design documents only**. No application code, framework, package manager or PDF renderer has been selected.
+Maintained under Lifehouse-HK; software licensed under [MIT](LICENSE).
 
-- [Architecture](docs/architecture.md): tool-neutral system definition and behavioural contracts.
-- [Technology discussion](docs/technology-decisions.md): choices to settle before implementation.
-- [Implementation plan](IMPLEMENTATION_PLAN.md): the full P0–P5 backlog, action dependencies, acceptance criteria, fixture catalogue, architecture traceability, open questions and dated validation evidence.
-- [Repository guide](AGENTS.md): contributor workflow and commit requirements.
+- [Architecture](docs/architecture.md): approved behavioural contracts.
+- [Implementation plan](IMPLEMENTATION_PLAN.md): acceptance gates and dated evidence.
+- [Runtime and storage decision](docs/decisions/001-runtime-and-storage.md): module boundaries and free toolchain.
+- [Repository guide](AGENTS.md): contributor workflow.
 
-## Current status and contributing
+## Current status
 
-As of 2026-09-11, the user has approved the architecture. Every required component and the complete product must be usable free of charge; technology discussion remains the active phase. GitHub Actions is approved for generation and deployment, with a completely static publication site. Application implementation is paused until the remaining technology discussion is resolved. See the implementation plan for the next action and outstanding decisions.
+Implementation is underway. The first portable TypeScript domain module provides explicit provision identities and labels, bilingual/shared content, lifecycle records, structured amendment values and diagnostics. This is foundation work, not a completed editor or publishing product.
 
-The complete implementation is now planned. Planning completion does not mark any editor, engine or rendering feature implemented. The next steps are D01 technology decisions, D02 document/nomenclature mapping, and the early PDF/persistence qualification actions D03/D04 before the main implementation phases.
+The user has asked to pause **before building the editor UI**, to discuss its design. Domain, engine and headless publishing work may continue. The actual document collection and publication website remain a separate, deferred repository.
 
-Read `AGENTS.md` and the relevant plan entries before editing. Make focused commits using `<type>(<scope>): <imperative description>` and record applicable validation. There are no application build/test commands or CI pipelines yet. For documentation/configuration changes, inspect affected local links, verify ignore rules when changed, and run `git diff --cached --check` before committing.
+## Development
 
-The `.gitignore` excludes operating-system metadata, local environment values, editor recovery files and root scratch/cache directories. Environment templates remain trackable. Tool-specific build/dependency rules will be added after the toolchain is selected; publication formats and fixtures are not globally ignored.
+Use Node 24 and npm: `npm ci`, then `npm run check` and `npm test`. Dependencies are pinned in `package-lock.json`. Python PDF qualification dependencies are pinned in `requirements.lock`; install them into an isolated Python environment. Renderer setup and qualification evidence will be added with the adapter.
 
-The editor and publishing engine will be separate modules in this repository. The actual draft/adopted document collection, certification records and generated publication website belong in a **separate future repository**, not created by this project setup.
-
-Public availability does not itself grant an open-source licence. The repository licence remains to be selected by its owner.
+The canonical `.sg.json` project belongs to the domain, not the editor. AKN language expressions are interchange outputs. The editor and rendering engine are separate modules in this repository. No paid service, font, renderer or editor extension is required.

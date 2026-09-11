@@ -28,3 +28,10 @@ Desktop.ini
 # IDE
 .idea/
 .vscode/
+# Selected implementation toolchain
+node_modules/
+/dist/
+/.venv/
+__pycache__/
+*.pyc
+/.sites-runtime/

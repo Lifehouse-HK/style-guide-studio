@@ -6,15 +6,11 @@ This is the PLAN referenced by [AGENTS.md](AGENTS.md). Behavioural requirements 
 
 ## Current status
 
-- Repository contains documentation and repository configuration only; no product implementation, build commands, automated product tests or CI pipelines exist.
-- Architecture proposal was committed in `13646ef`. That commit predates the repository's conventional-commit rule; preserve its published history and follow the rule for new commits.
-- Architecture approved by the user on 2026-09-11. All required components and the final product must have a comfortable free-of-charge path; Prince is no longer a candidate. The remaining software stack is unapproved. Evidence: V03.
-- GitHub Actions is approved for generation/deployment, with a completely static publication site; local publishing remains a fallback, not an author requirement. Evidence: V04.
-- Current phase: P0, design and technology discussion. No implementation phase is active.
-- Completed repository action: R01, adopt the contributor workflow and ignore local clutter. Evidence: V01 below.
-- Completed planning action: D00, expand the approved architecture into the full implementation backlog, dependency gates, fixture coverage and handoff criteria. Evidence: V05. All product actions remain unstarted.
-- Next action: D01, discuss and record technology decisions with the user. The earlier instruction to discuss technologies before application code remains in force.
-- No publication/document-collection repository is being created in this scope.
+- Architecture approved; user authorised implementation on 2026-09-11, then set the stopping boundary immediately before editor UI construction for design discussion.
+- Current primary phase: P0 qualification. Domain types are reusable qualification scaffolding; this does not mark P1 complete or bypass its remaining gates.
+- D01 runtime/storage choices recorded in ADR 001 under implementation delegation. MIT explicitly selected by the user. No paid required component.
+- Portable domain source, four host tests and strict TypeScript checks exist. Evidence: V06.
+- Active/next actions: D02 mapping, D03 PDF qualification and D04 portable format qualification. No UI construction, corpus repository or production deployment.
 
 Markers: `[ ]` not started; `[~]` active; `[x]` complete with evidence; `[!]` blocked by a referenced question. Only one primary phase may be active.
 
@@ -27,7 +23,7 @@ Markers: `[ ]` not started; `[~]` active; `[x]` complete with evidence; `[!]` bl
 
 ## Delivery phases
 
-These are dependencies and acceptance gates, not authorisation to bypass the technology discussion. Each phase will be delivered through focused actions/commits; additional action IDs may be added without renumbering existing IDs. Architecture section 18 items are referenced as ARCH-18.1 through ARCH-18.14.
+These are dependencies and acceptance gates. The user has now authorised implementation through the headless tooling, with UI construction paused for design discussion. Each phase will be delivered through focused actions/commits; additional action IDs may be added without renumbering existing IDs. Architecture section 18 items are referenced as ARCH-18.1 through ARCH-18.14.
 
 | Phase | Status | Dependency | Action | Acceptance criteria |
 | --- | --- | --- | --- | --- |
@@ -40,7 +36,7 @@ These are dependencies and acceptance gates, not authorisation to bypass the tec
 
 ## Implementation rules and boundaries
 
-This plan is complete enough to execute after its decision gates are met. It does not silently approve the proposed stack. TypeScript, React, the free Tiptap/ProseMirror core and WeasyPrint are planning candidates; a change of library should not change the behavioural backlog. Canonical AKN versus a neutral project container remains a material persistence choice.
+The implementation path is recorded in ADR 001 under the user’s delegation. Qualification precedes reliance on candidate capabilities. The UI boundary is a user-requested stop, not a technical blocker.
 
 Each parent action already listed above (M01, E01, R02, U01 and V02) is expanded into stable child IDs below. A parent is complete only when all its children and phase acceptance criteria pass. Each child is a focused delivery unit, potentially several coherent commits where warranted. Child acceptance identifiers use `<action>-AC1`, etc. Do not treat writing this plan, creating a fixture, or passing a model test as completing an editor workflow.
 
@@ -153,7 +149,7 @@ Once separately authorised, the corpus repository will select its name, visibili
 | Q01 | Canonical AKN was proposed earlier; bilingual shared objects, operations and dependency locks need a complete project container. Affects D01/D02/M01. | AKN plus manifest/resources, or a neutral canonical project format with validated AKN interchange? |
 | Q02 | Browser/headless reuse and structured editing were proposed, not approved. Affects D01 and implementation phases. | Confirm implementation language, editor foundation, UI framework and validating runtime. |
 | Q03 | Cost resolved on 2026-09-11: all required functionality must be free. WeasyPrint is the leading candidate, not a verified choice. Affects D01/R02. | Publication execution resolved: GitHub Actions; a browser-only final renderer and local author helper are unnecessary. Remaining work: verify the free renderer and define explicit asynchronous proof submission. Future repository visibility and deployment host are not selected. |
-| Q04 | Public visibility does not grant a software licence. Affects D01/V02 and distribution readiness. | Select the software licence; publication-content rights remain separate. |
+| Q04 | Resolved 2026-09-11 by explicit user reply. | MIT software licence added; publication-content rights remain separate. |
 
 Nomenclature and schema verification in D02 are research obligations, not extra permission gates. Record ambiguities and bring only material policy choices to the user.
 
@@ -196,3 +192,10 @@ There is enough information to plan all phases now. Q01/Q02 gate dependent imple
 - Record decisions from the technology discussion before starting P1.
 - Add actual build/test commands and CI requirements when tooling exists; do not invent commands for the documentation-only repository.
 - Update this status, active/next action and evidence on each change of progress. Keep earlier evidence dated rather than presenting it as a fresh verification.
+
+### V06 — domain qualification foundation — 2026-09-11
+
+- User authorised execution and selected MIT. ADR 001 records neutral domain JSON, TypeScript/Node, free editor dependencies and the Python PDF qualification path.
+- Automated host checks: `npm test`, four tests passed (manual labels/order, duplicate addresses, paired titles, safe schema handling, canonical key order); `npm run check`, passed.
+- These are model checks only. No browser/UI, AKN schema, PDF viewer, remote CI or release claim yet.
+- Latest user scope: continue headless implementation, stop before constructing editor UI for design discussion.
