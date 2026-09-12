@@ -8,7 +8,7 @@ Updated 2026-09-12. The user requested a restart from zero. The previous applica
 - [x] N4: Conventional tree/form editor with explicit Add/Move/Save/Discard, recovery, diagnostics and read-only proofs. Amendment action workspace and enacted revision workspace. No editable page canvas or ribbon.
 - [x] N5: Bounded host, browser and export verification completed below; remaining qualification work is explicit and is not represented as release readiness.
 
-D1 GitHub Pages deployment is active. Next ready action is user evaluation of the replacement editor, followed by the qualification items below. The corpus repository and deployment remain outside this implementation.
+No implementation phase is active. The editor is live on GitHub Pages. Next ready action is user evaluation of the replacement editor, followed by the qualification items below. The corpus repository and publication/API deployment remain outside this implementation; the editor is deployed separately under D1.
 
 ## Fresh evidence — 2026-09-12
 
@@ -67,4 +67,7 @@ D1 GitHub Pages deployment is active. Next ready action is user evaluation of th
 
 ## GitHub Pages — 2026-09-12
 
-- [~] D1: Push the completed application and deploy the static editor to GitHub Pages. Add an Actions workflow with clean installation, checks/tests, project-path build and dist-only deployment. Publication/corpus API hosting is not included.
+- [x] D1: Push the completed application and deploy the static editor to GitHub Pages. Add an Actions workflow with clean installation, checks/tests, project-path build and dist-only deployment. Publication/corpus API hosting is not included.
+- Deployed editor: https://lifehouse-hk.github.io/style-guide-studio/ . All application commits through `21dc3c5` pushed to `main`. GitHub Actions run [34667731420](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34667731420) passed both build and deploy (Ubuntu, Node 24, clean npm install, type check, 23 tests, project-path production build).
+- Live browser verification passed: HTTP 200, JavaScript/CSS asset paths, fixed viewport, API amendment URL dialog and embedded proof logo, with no page/request errors. HTTPS is enforced. The Actions runner emitted upstream action-runtime deprecation advisories; deployment succeeded.
+- Next ready action: use the deployed editor; publish the separate corpus/API later. This deployment does not transfer browser recovery data from localhost.
