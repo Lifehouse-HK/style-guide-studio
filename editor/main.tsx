@@ -992,7 +992,7 @@ function DocumentForm({
             />
             <Field
               label="Preamble format"
-              hint="Switching formats retains the other text so it can be restored."
+              hint="WHEREAS / 鑑於 is generated automatically. Enter only the recital text. Switching formats retains the other text so it can be restored."
             >
               <select
                 value={draft.preamble.mode}

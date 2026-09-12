@@ -71,3 +71,9 @@ No implementation phase is active. The editor is live on GitHub Pages. Next read
 - Deployed editor: https://lifehouse-hk.github.io/style-guide-studio/ . All application commits through `21dc3c5` pushed to `main`. GitHub Actions run [34667731420](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34667731420) passed both build and deploy (Ubuntu, Node 24, clean npm install, type check, 23 tests, project-path production build).
 - Live browser verification passed: HTTP 200, JavaScript/CSS asset paths, fixed viewport, API amendment URL dialog and embedded proof logo, with no page/request errors. HTTPS is enforced. The Actions runner emitted upstream action-runtime deprecation advisories; deployment succeeded.
 - Next ready action: use the deployed editor; publish the separate corpus/API later. This deployment does not transfer browser recovery data from localhost.
+
+## Preamble opening and small caps — 2026-09-12
+
+- [x] F7: Automatically introduce paragraph and numbered preambles with WHEREAS / 鑑於 in the shared proof/HTML/PDF renderer. English WHEREAS and BE IT ENACTED use small caps. Already-entered preamble openings are not duplicated; source text and the customisable formula remain unchanged. The editor explains that openings are generated.
+- Fresh type check, all 24 tests and production build passed. Chromium verified both preamble formats and computed small-cap styling; the parallel numbered proof was visually inspected. No PDF file was generated for this change; the PDF adapter consumes the same HTML/CSS.
+- Completed locally; this fix has not been pushed or deployed. No active implementation phase.

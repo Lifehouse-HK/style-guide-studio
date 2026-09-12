@@ -60,3 +60,40 @@ test('underlining and per-language alignment render on unheaded first blocks', a
   assert.match(html, /text-align:right[^>]*><span class="number">\(1\)<\/span><u>中文<\/u>/);
   assert.match(html, />Section 1 /);
 });
+
+test('preamble openings are automatic in both formats and ceremonial English uses small caps', async () => {
+  const g = specimen();
+  const originalFormula = structuredClone(g.formula);
+  for (const mode of ['paragraph', 'list'] as const) {
+    g.preamble.mode = mode;
+    g.preamble.paragraph = pair('Readers need clarity.', '讀者需要清晰的文字。');
+    g.preamble.items = [
+      pair('Readers need clarity.', '讀者需要清晰的文字。'),
+      pair('Second recital.', '第二項。'),
+    ];
+    for (const layout of ['en', 'zh', 'parallel'] as const) {
+      const html = await render(g, { layout, pdf: true });
+      assert.equal(
+        (html.match(/<span class="small-caps">Whereas<\/span>—/g) ?? []).length,
+        layout === 'zh' ? 0 : 1,
+      );
+      assert.equal((html.match(/鑑於——/g) ?? []).length, layout === 'en' ? 0 : 1);
+      assert.equal(
+        (html.match(/<span class="small-caps">Be it enacted<\/span>/g) ?? []).length,
+        layout === 'zh' ? 0 : 1,
+      );
+      assert.match(html, /font-variant-caps:small-caps/);
+      if (mode === 'list') assert.match(html, /class="number">2\.<\/span>/);
+    }
+  }
+  g.preamble.mode = 'paragraph';
+  g.preamble.paragraph = pair('WHEREAS— Readers need clarity.', '鑑於——讀者需要清晰的文字。');
+  const html = await render(g, { layout: 'parallel' });
+  assert.equal((html.match(/Whereas|WHEREAS/g) ?? []).length, 1);
+  assert.equal((html.match(/鑑於/g) ?? []).length, 1);
+  assert.deepEqual(g.formula, originalFormula);
+  g.preamble.mode = 'none';
+  assert.doesNotMatch(await render(g, { layout: 'parallel' }), /Whereas|鑑於/);
+  g.formula.en = 'A custom formula without the usual phrase <remains literal>.';
+  assert.match(await render(g, { layout: 'en' }), /&lt;remains literal&gt;/);
+});
