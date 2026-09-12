@@ -46,3 +46,5 @@ Ordinary body paragraphs are justified unless their source explicitly specifies 
 ## Verification
 
 `tools/check-print-layout.ts` generates long EN/ZH/parallel specimens, compares the editor print expression with renderer output, and checks number placement/column alignment. `tools/check-print-layout.py` inspects actual PDF margins, font size, page-number positions, first-page header suppression and page overflow. The existing real PDF tests still inspect all named destinations, tagged output and the final row of a long bilingual table. The actual Print button/iframe is exercised by the browser feedback story (native dialog intercepted only for automation). Linux CI repeats these checks and retains the generated PDFs.
+
+Release evidence: 42 tests and all browser/PDF checks passed locally and in Linux [run 34697687825](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34697687825). Actual Linux output was downloaded and visually inspected. The live editor and corpus both deploy the final engine `299c62f`.

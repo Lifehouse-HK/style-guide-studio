@@ -8,7 +8,7 @@ Updated 2026-09-12. The user requested a restart from zero. The previous applica
 - [x] N4: Conventional tree/form editor with explicit Add/Move/Save/Discard, recovery, diagnostics and read-only proofs. Amendment action workspace and enacted revision workspace. No editable page canvas or ribbon.
 - [x] N5: Bounded host, browser and export verification completed below; remaining qualification work is explicit and is not represented as release readiness.
 
-P1 UK print-profile matching is active. R1–R4 are complete. All earlier audit implementation work is pushed; the editor and separate publication site/API are deployed, including the final reference-retention fix. The corpus is intentionally empty until genuine enacted Guides are added. Detailed current evidence is in the audit completion programme at the end; earlier entries retain their historical checks.
+P1 UK print-profile matching is complete and deployed. R1–R4 are complete. All earlier audit implementation work is pushed; the editor and separate publication site/API are deployed, including the final reference-retention fix. The corpus is intentionally empty until genuine enacted Guides are added. Detailed current evidence is in the audit completion programme at the end; earlier entries retain their historical checks.
 
 ## Fresh evidence — 2026-09-12
 
@@ -126,8 +126,10 @@ Routine choices: use right-aligned latest amendment notes linking a full history
 
 ## UK PDF typography matching — 2026-09-12
 
-- [~] P1: Retrieve and measure official original/revised PDFs; apply a shared print/reader profile, provision hanging indents, title/Part styling and running page headers. Verify actual PDFs and browser Print on representative English, Chinese and parallel specimens.
+- [x] P1: Retrieve and measure official original/revised PDFs; apply a shared print/reader profile, provision hanging indents, title/Part styling and running page headers. Verify actual PDFs and browser Print on representative English, Chinese and parallel specimens.
 
 - P1 local evidence: retrieved and measured Budget Responsibility Act 2024, Media Act 2024 and revised Freedom of Information Act 2000 PDFs. Shared reader/print profile, hanging numbers, Part/section styling, restrained quotations, title/date treatment, first-page branding and alternating page headers implemented. Native Print button/iframe passed; all 42 tests, type check and production build passed. Actual long EN/ZH/parallel specimens (7/6/11 pages) passed physical geometry/overflow checks and were visually inspected, including continuation headers, shared-table continuation and amendment quotations. Existing PDF destinations/tagging/70-row checks passed. Linux release verification follows.
 
 - Initial Linux typography release [34697509217](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34697509217) and corpus deployment [34697544597](https://github.com/Lifehouse-HK/church-publication-guides/actions/runs/34697544597) passed. Live proof confirmed the 11 pt body, 24 pt title and shared print rules. Downloaded Linux EN/ZH/parallel artifacts were visually inspected. Final review removed a redundant section margin that doubled spacing inside bilingual grid rows; fresh physical-PDF checks still pass (7/6/11 pages).
+
+- P1 release complete: final engine `299c62f` passed Linux [34697687825](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34697687825), including the 42-test suite, actual Print-button workflow, all browser stories, PDF destination checks, measured print geometry and deployment. Corpus `177fc0d` pins the same engine and passed [34697704656](https://github.com/Lifehouse-HK/church-publication-guides/actions/runs/34697704656). Live proof checked the deployed typography. No implementation phase is active. Browser printing requires its optional built-in Headers and footers to be disabled; dynamic current-Part running headers remain outside native Chromium support, as recorded in the print profile.
