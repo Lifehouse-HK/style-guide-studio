@@ -48,6 +48,8 @@ See [the architecture contract](docs/fresh-architecture.md), [confirmed requirem
 
 This is a locally verified replacement, not a qualified publishing service. The static API builder is included; no signing service or publication repository is included. The editor has a separate GitHub Pages deployment workflow. XML schema checks establish syntactic validity, not generic Akoma Ntoso interoperability. PDF cross-file destination behavior and clean Linux font metrics still need qualification. Final typography and the visible amendment-history treatment remain design decisions.
 
+See the [post-definition feature audit](docs/feature-audit-2026-09-12.md) for confirmed defects, missing capabilities and the recommended next work.
+
 ## GitHub Pages deployment
 
 The editor is deployed by `.github/workflows/pages.yml` to `https://lifehouse-hk.github.io/style-guide-studio/`. Pushes affecting application files on `main` run a clean install, type checks, tests and a production build before uploading only `dist/` to Pages. Pull requests run checks without deploying; documentation-only pushes do not redeploy. The workflow can also be dispatched manually.

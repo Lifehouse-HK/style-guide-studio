@@ -8,7 +8,7 @@ Updated 2026-09-12. The user requested a restart from zero. The previous applica
 - [x] N4: Conventional tree/form editor with explicit Add/Move/Save/Discard, recovery, diagnostics and read-only proofs. Amendment action workspace and enacted revision workspace. No editable page canvas or ribbon.
 - [x] N5: Bounded host, browser and export verification completed below; remaining qualification work is explicit and is not represented as release readiness.
 
-No implementation phase is active. Local definition-list work is complete; the feature audit follows below. The previously deployed editor is live on GitHub Pages. Next ready action is user evaluation of the replacement editor, followed by the qualification items below. The corpus repository and publication/API deployment remain outside this implementation; the editor is deployed separately under D1.
+No implementation phase is active. Local definition-list work and the requested feature audit are complete. The previously deployed editor is live on GitHub Pages. Next ready action is user evaluation of the replacement editor, followed by the qualification items below. The corpus repository and publication/API deployment remain outside this implementation; the editor is deployed separately under D1.
 
 ## Fresh evidence — 2026-09-12
 
@@ -85,3 +85,9 @@ No implementation phase is active. Local definition-list work is complete; the f
 - `npx tsx tools/check-definitions.ts` passed the actual local browser workflow: create a reference alias, add a master and four terms, verify sort/override, retain an independent subsection list, disallow a second master, save/reopenable source and parallel proof. No browser page errors.
 - English and Chinese XML specimens passed `xmllint --schema` against the official OASIS schema. All three PDFs were generated through the application adapter; English/Chinese first pages and both parallel pages were visually inspected. Indented wrapping and bilingual row alignment passed. This remains local macOS verification, not Linux or remote-PDF-destination qualification.
 - This feature and the earlier preamble fix remain local, not pushed/deployed.
+
+## Post-definition feature audit — 2026-09-12
+
+- [x] A0: Audit the remaining agreed capabilities after F8. Findings and acceptance criteria are recorded in [the feature audit](docs/feature-audit-2026-09-12.md), with source-inspection findings distinguished from host reproductions and qualification gaps.
+- Host probes confirmed missing external-reference enactment validation, rich-format reference-token breakage, empty amendment formula acceptance and divergent generated XML preamble openings. Browser Print uses HTML-link destinations by source inspection. These defects are recorded, not fixed as part of the requested audit.
+- Next recommended work: reference/enactment/PDF-print correctness (A1–A4), followed by definition and principal-alias amendment operations (A7–A8). No implementation phase is active; no push/deployment performed.
