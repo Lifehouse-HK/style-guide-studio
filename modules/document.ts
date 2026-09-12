@@ -57,7 +57,16 @@ export type Table = {
   numbered: boolean;
   rows: string[][];
 };
-export type Definition = { id: string; term: Pair; meaning: Pair; orderBy?: Pair };
+export type Definition = {
+  id: string;
+  term: Pair;
+  meaning: Pair;
+  orderBy?: Pair;
+  children?: Node[];
+  table?: Table;
+  closing?: Pair;
+  repealed?: boolean;
+};
 export type DefinitionList = {
   id: string;
   type: 'definitions';
@@ -75,33 +84,49 @@ export type Node = {
   children: Node[];
   repealed?: boolean;
 };
+export const definitionSchema: z.ZodType<Definition> = z.lazy(() =>
+  z
+    .object({
+      id: z.string().regex(/^[a-zA-Z][\w-]*$/),
+      term: paired,
+      meaning: paired,
+      orderBy: paired.optional(),
+      children: z.array(nodeSchema).optional(),
+      closing: paired.optional(),
+      repealed: z.boolean().optional(),
+      table: z
+        .object({
+          id: z.string(),
+          type: z.literal('table'),
+          caption: paired,
+          numbered: z.boolean(),
+          rows: z.array(z.array(z.string()).min(1)).min(1),
+        })
+        .strict()
+        .optional(),
+    })
+    .strict()
+    .superRefine((item, ctx) => {
+      for (const l of ['en', 'zh'] as const)
+        try {
+          richPlain(item.meaning[l]);
+        } catch {
+          ctx.addIssue({ code: 'custom', message: 'Invalid definition HTML.' });
+        }
+      if (item.children?.some((n) => n.kind !== 'paragraph'))
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Definition branches must start with paragraphs.',
+        });
+    }),
+);
 const blockSchema = z.union([
   z
     .object({
       id: z.string().min(1),
       type: z.literal('definitions'),
       master: z.boolean(),
-      items: z.array(
-        z
-          .object({
-            id: z.string().min(1),
-            term: paired,
-            meaning: paired,
-            orderBy: paired.optional(),
-          })
-          .strict()
-          .superRefine((item, ctx) => {
-            for (const l of ['en', 'zh'] as const)
-              try {
-                richPlain(item.meaning[l]);
-              } catch {
-                ctx.addIssue({
-                  code: 'custom',
-                  message: 'Invalid restricted HTML in definition meaning.',
-                });
-              }
-          }),
-      ),
+      items: z.array(definitionSchema),
     })
     .strict(),
   z
@@ -246,11 +271,39 @@ export function newNode(kind: Kind, label: string): Node {
   };
 }
 export const textBlock = (): TextBlock => ({ id: id(), type: 'text', text: pair() });
-export type Entry = { node: Node; parent?: Node; ancestors: Node[]; list: Node[] };
-export function entries(nodes: Node[], ancestors: Node[] = []): Entry[] {
+export type Entry = {
+  node: Node;
+  parent?: Node;
+  ancestors: Node[];
+  list: Node[];
+  definition?: { id: string; term: Pair; owner: Node; repealed?: boolean };
+};
+export function entries(
+  nodes: Node[],
+  ancestors: Node[] = [],
+  definition?: Entry['definition'],
+): Entry[] {
   return nodes.flatMap((node) => [
-    { node, parent: ancestors.at(-1), ancestors, list: nodes },
-    ...entries(node.children, [...ancestors, node]),
+    {
+      node,
+      parent: ancestors.at(-1),
+      ancestors,
+      list: nodes,
+      ...(definition ? { definition } : {}),
+    },
+    ...entries(node.children, [...ancestors, node], definition),
+    ...(node.blocks ?? []).flatMap((b) =>
+      b.type === 'definitions'
+        ? b.items.flatMap((item) =>
+            entries(item.children ?? [], [...ancestors, node], {
+              id: item.id,
+              term: item.term,
+              owner: node,
+              repealed: item.repealed,
+            }),
+          )
+        : [],
+    ),
   ]);
 }
 export function allowed(parent?: Node, inSchedule = false): Kind[] {
@@ -285,6 +338,17 @@ export function allowed(parent?: Node, inSchedule = false): Kind[] {
 export const inSchedule = (e: Entry) =>
   [...e.ancestors, e.node].some((n) => ['schedule', 'appendix'].includes(n.kind));
 export function address(e: Entry, lang: Language = 'en'): string {
+  if (e.definition) {
+    const index = e.ancestors.findIndex((n) => n.id === e.definition!.owner.id);
+    const owner = address(
+      { node: e.definition.owner, ancestors: e.ancestors.slice(0, index), list: [] },
+      lang,
+    );
+    const numbers = [...e.ancestors.slice(index + 1), e.node].map((n) => `(${n.label})`).join('');
+    return lang === 'en'
+      ? `paragraph ${numbers} of the definition of “${e.definition.term.en}” in ${owner}`
+      : `${owner}中“${e.definition.term.zh}”的定義的第${numbers}段`;
+  }
   const n = e.node,
     path = [...e.ancestors, n];
   const container = path.find((x) => x.kind === 'schedule' || x.kind === 'appendix');
@@ -376,7 +440,8 @@ export function numbering(nodes: Node[]): Issue[] {
           ? (container?.id ?? 'schedule')
           : (e.parent?.id ?? 'root')) +
       ':' +
-      n.kind;
+      n.kind +
+      (e.definition ? ':definition:' + e.definition.id : '');
     const state = scopes.get(scope) ?? { seen: new Set<string>(), last: null };
     scopes.set(scope, state);
     const add = (code: string, message: string) =>
@@ -421,7 +486,7 @@ export function definitionAnchor(list: string, item: string) {
 }
 export function referenceTargets(g: Guide) {
   return entries(g.nodes).flatMap((e) => {
-    const repealed = [...e.ancestors, e.node].some((n) => n.repealed);
+    const repealed = !!e.definition?.repealed || [...e.ancestors, e.node].some((n) => n.repealed);
     return [
       {
         id: e.node.id,
@@ -432,11 +497,16 @@ export function referenceTargets(g: Guide) {
       ...(e.node.blocks ?? []).flatMap((b) =>
         b.type === 'definitions'
           ? [
-              ...b.items.map((i) => ({ id: definitionAnchor(b.id, i.id), term: i.term })),
+              ...b.items.map((i) => ({
+                id: definitionAnchor(b.id, i.id),
+                term: i.term,
+                repealed: i.repealed,
+              })),
               ...(b.master
                 ? Object.entries(g.aliases).map(([id, term]) => ({
                     id: definitionAnchor(b.id, 'alias-' + id),
                     term,
+                    repealed: false,
                   }))
                 : []),
             ].map((i) => ({
@@ -445,7 +515,7 @@ export function referenceTargets(g: Guide) {
                 `the definition of “${i.term.en}” in ${address(e, 'en')}`,
                 `${address(e, 'zh')}中“${i.term.zh}”的定義`,
               ),
-              repealed,
+              repealed: repealed || !!i.repealed,
               owner: e.node.id,
             }))
           : [],
@@ -488,14 +558,20 @@ export function referenceIssues(g: Guide, catalogues: Catalogue[] = []): Issue[]
     if (g.preamble.mode === 'list') for (const p of g.preamble.items) inspect(p[l], 'opening');
   }
   for (const e of entries(g.nodes)) {
-    if ([...e.ancestors, e.node].some((n) => n.repealed)) continue;
+    if (e.definition?.repealed || [...e.ancestors, e.node].some((n) => n.repealed)) continue;
     for (const l of languages(g)) if (e.node.closing) inspect(e.node.closing[l], e.node.id);
     for (const b of e.node.blocks ?? []) {
       if (b.type === 'table') {
         for (const row of b.rows) for (const cell of row) inspect(cell, e.node.id);
       } else if (b.type === 'definitions') {
-        for (const item of b.items)
-          for (const l of languages(g)) inspect(item.meaning[l], e.node.id, true);
+        for (const item of b.items.filter((i) => !i.repealed)) {
+          for (const l of languages(g)) {
+            inspect(item.meaning[l], e.node.id, true);
+            if (item.closing) inspect(item.closing[l], e.node.id);
+          }
+          for (const row of item.table?.rows ?? [])
+            for (const cell of row) inspect(cell, e.node.id);
+        }
         if (b.master) for (const id of Object.keys(g.aliases)) check(id, e.node.id);
       } else
         for (const l of languages(g)) inspect(b.text[l], e.node.id, b.textFormat?.[l] === 'html');
@@ -515,13 +591,17 @@ export function issues(g: Guide, catalogues: Catalogue[] = []): Issue[] {
     if (seen.has(n.id)) add(n.id, 'identity', 'Duplicate permanent identity.');
     seen.add(n.id);
     if (
-      !allowed(
-        e.parent,
-        e.ancestors.some((x) => ['schedule', 'appendix'].includes(x.kind)),
+      !(
+        e.definition && e.parent?.id === e.definition.owner.id
+          ? ['paragraph']
+          : allowed(
+              e.parent,
+              e.ancestors.some((x) => ['schedule', 'appendix'].includes(x.kind)),
+            )
       ).includes(n.kind)
     )
       add(n.id, 'structure', 'This level cannot occur at this location.');
-    if (!n.repealed) {
+    if (!n.repealed && !e.definition?.repealed) {
       for (const l of languages(g)) {
         if (
           hasHeading(n.kind) &&
@@ -553,13 +633,21 @@ export function issues(g: Guide, catalogues: Catalogue[] = []): Issue[] {
           for (const item of b.items) {
             if (seen.has(item.id)) add(n.id, 'identity', 'Duplicate definition identity.');
             seen.add(item.id);
+            if (item.table) {
+              if (seen.has(item.table.id))
+                add(n.id, 'identity', 'Duplicate definition table identity.');
+              seen.add(item.table.id);
+              if (item.table.rows.some((r) => r.length !== item.table!.rows[0].length))
+                add(n.id, 'table', 'Definition table rows must have equal widths.');
+            }
             for (const l of languages(g)) {
+              if (item.repealed) continue;
               if (!item.term[l].trim() || !richPlain(item.meaning[l]).trim())
                 add(n.id, 'definitions', `Complete the ${l} term and meaning.`);
             }
           }
           for (const term of [
-            ...b.items.map((i) => i.term),
+            ...b.items.filter((i) => !i.repealed).map((i) => i.term),
             ...(b.master ? Object.values(g.aliases) : []),
           ])
             for (const l of languages(g)) {
@@ -583,6 +671,9 @@ export function issues(g: Guide, catalogues: Catalogue[] = []): Issue[] {
       }
     }
   }
+  const anchors = referenceTargets(g).map((t) => t.id);
+  if (new Set(anchors).size !== anchors.length)
+    add('details', 'identity', 'Duplicate public reference anchor.');
   out.push(...referenceIssues(g, catalogues));
   return out;
 }

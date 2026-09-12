@@ -384,14 +384,17 @@ export function DefinitionFields({
   guide,
   catalogues,
   siblingMaster = false,
+  single = false,
 }: {
   siblingMaster?: boolean;
+  single?: boolean;
   value: DefinitionList;
   onChange: (value: DefinitionList) => void;
   guide: Guide;
   catalogues: Catalogue[];
 }) {
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = useState(single ? (value.items[0]?.id ?? '') : ''),
+    [branch, setBranch] = useState('');
   const language = guide.mode === 'zh' ? 'zh' : 'en';
   const rows = definitionRows(value, guide, language);
   const item = value.items.find((i) => i.id === selected);
@@ -408,7 +411,7 @@ export function DefinitionFields({
         <input
           type="checkbox"
           checked={value.master}
-          disabled={!value.master && (!!otherMaster || siblingMaster)}
+          disabled={single || (!value.master && (!!otherMaster || siblingMaster))}
           onChange={(e) => onChange({ ...value, master: e.target.checked })}
         />
         Master definition list
@@ -457,6 +460,7 @@ export function DefinitionFields({
       <div className="toolbar">
         <button
           type="button"
+          disabled={single}
           onClick={() => {
             const next = { id: id(), term: pair(), meaning: pair() };
             onChange({ ...value, items: [...value.items, next] });
@@ -465,7 +469,7 @@ export function DefinitionFields({
         >
           Add term
         </button>
-        {item && (
+        {item && !single && (
           <button
             type="button"
             onClick={() => {
@@ -507,6 +511,98 @@ export function DefinitionFields({
               catalogues={catalogues}
             />
           ))}
+          <div className="toolbar">
+            <button
+              type="button"
+              onClick={() => {
+                const n = newNode('paragraph', '');
+                update({ ...item, children: [...(item.children ?? []), n] });
+                setBranch(n.id);
+              }}
+            >
+              Add definition paragraph
+            </button>
+            <button
+              type="button"
+              disabled={!!item.table}
+              onClick={() =>
+                update({
+                  ...item,
+                  table: {
+                    id: id(),
+                    type: 'table',
+                    caption: pair(),
+                    numbered: false,
+                    rows: [
+                      ['', ''],
+                      ['', ''],
+                    ],
+                  },
+                })
+              }
+            >
+              Add definition table
+            </button>
+          </div>
+          {!!item.children?.length && (
+            <>
+              <select
+                aria-label="Definition paragraph"
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+              >
+                <option value="">Select paragraph</option>
+                {item.children.map((n) => (
+                  <option value={n.id} key={n.id}>
+                    ({n.label || '?'})
+                  </option>
+                ))}
+              </select>
+              {item.children.find((n) => n.id === branch) && (
+                <>
+                  <PayloadEditor
+                    key={branch}
+                    value={item.children.find((n) => n.id === branch)!}
+                    guide={guide}
+                    catalogues={catalogues}
+                    lockIdentity={false}
+                    onChange={(next) =>
+                      update({
+                        ...item,
+                        children: item.children!.map((n) => (n.id === next.id ? next : n)),
+                      })
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      update({ ...item, children: item.children!.filter((n) => n.id !== branch) });
+                      setBranch('');
+                    }}
+                  >
+                    Remove definition paragraph
+                  </button>
+                </>
+              )}
+            </>
+          )}
+          {item.table && (
+            <>
+              <TableFields value={item.table} onChange={(table) => update({ ...item, table })} />
+              <button type="button" onClick={() => update({ ...item, table: undefined })}>
+                Remove definition table
+              </button>
+            </>
+          )}
+          {(item.children?.length || item.table) && (
+            <PairFields
+              label="Definition closing text"
+              value={item.closing ?? pair()}
+              mode={guide.mode}
+              multiline
+              onChange={(closing) => update({ ...item, closing })}
+            />
+          )}
         </>
       )}
     </>
@@ -696,5 +792,123 @@ export function NodeFields({
         </>
       )}
     </>
+  );
+}
+
+export function PayloadEditor({
+  value,
+  guide,
+  catalogues,
+  onChange,
+  lockIdentity,
+}: {
+  value: Node;
+  guide: Guide;
+  catalogues: Catalogue[];
+  onChange: (n: Node) => void;
+  lockIdentity: boolean;
+}) {
+  const [selected, setSelected] = useState(value.id),
+    [adding, setAdding] = useState(false),
+    [kind, setKind] = useState<Kind>('section'),
+    [label, setLabel] = useState('');
+  const e = entries([value]).find((e) => e.node.id === selected) ?? entries([value])[0];
+  const schedule =
+    guide.nodes.some(
+      (n) =>
+        ['schedule', 'appendix'].includes(n.kind) &&
+        entries([n]).some((x) => x.node.id === value.id),
+    ) || inSchedule(e);
+  const choices = allowed(e.node, schedule);
+  return (
+    <section className="payload">
+      <h3>Replacement / inserted structure</h3>
+      <select
+        aria-label="Payload provision"
+        value={e.node.id}
+        onChange={(ev) => setSelected(ev.target.value)}
+      >
+        {entries([value]).map((e) => (
+          <option key={e.node.id} value={e.node.id}>
+            {names[e.node.kind].en} {e.node.label} — {e.node.heading?.en}
+          </option>
+        ))}
+      </select>
+      <NodeFields
+        value={e.node}
+        guide={guide}
+        catalogues={catalogues}
+        lockIdentity={lockIdentity && e.node.id === value.id}
+        onChange={(n) => {
+          const copy = structuredClone(value);
+          if (n.id === copy.id) onChange(n);
+          else {
+            const target = entries([copy]).find((e) => e.node.id === n.id)!;
+            target.list[target.list.indexOf(target.node)] = n;
+            onChange(copy);
+          }
+        }}
+      />
+      <div className="toolbar">
+        <button
+          type="button"
+          disabled={!choices.length}
+          onClick={() => {
+            setKind(choices[0]);
+            setAdding(true);
+          }}
+        >
+          Add child to this payload…
+        </button>
+        {e.node.id !== value.id && (
+          <button
+            type="button"
+            onClick={() => {
+              const copy = structuredClone(value),
+                t = entries([copy]).find((x) => x.node.id === e.node.id)!;
+              t.list.splice(t.list.indexOf(t.node), 1);
+              onChange(copy);
+              setSelected(value.id);
+            }}
+          >
+            Remove payload child
+          </button>
+        )}
+      </div>
+      {adding && (
+        <div className="payload-add">
+          <Field label={`New child inside ${names[e.node.kind].en} ${e.node.label}`}>
+            <select value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
+              {choices.map((k) => (
+                <option value={k} key={k}>
+                  {names[k].en}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Manual number">
+            <input value={label} onChange={(e) => setLabel(e.target.value)} />
+          </Field>
+          <button
+            type="button"
+            onClick={() => {
+              const copy = structuredClone(value),
+                t = entries([copy]).find((x) => x.node.id === e.node.id)!,
+                n = newNode(kind, label);
+              t.node.children.push(n);
+              onChange(copy);
+              setSelected(n.id);
+              setAdding(false);
+              setLabel('');
+            }}
+          >
+            Add child
+          </button>
+          <button type="button" onClick={() => setAdding(false)}>
+            Cancel
+          </button>
+        </div>
+      )}
+    </section>
   );
 }

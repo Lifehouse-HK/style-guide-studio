@@ -6,3 +6,23 @@ export const recitalText = (text: string, language: Language) =>
     language === 'en' ? /^\s*whereas\b\s*(?:[—–:-]+\s*)?/i : /^\s*鑑於\s*(?:[—–：:-]+\s*)?/,
     '',
   );
+
+export function preambleText(
+  preamble: {
+    mode: 'none' | 'paragraph' | 'list';
+    paragraph: { en: string; zh: string };
+    items: { en: string; zh: string }[];
+  },
+  language: Language,
+) {
+  if (preamble.mode === 'none') return '';
+  if (preamble.mode === 'paragraph')
+    return preambleOpening(language) + ' ' + recitalText(preamble.paragraph[language], language);
+  return (
+    preambleOpening(language) +
+    '\n' +
+    preamble.items
+      .map((p, i) => `${i + 1}. ${i === 0 ? recitalText(p[language], language) : p[language]}`)
+      .join('\n')
+  );
+}

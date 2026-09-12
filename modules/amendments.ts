@@ -1,5 +1,6 @@
+import { preambleText } from './front-matter.ts';
 import type { Catalogue } from './references.ts';
-import { richPlain, replaceRich } from './rich-text.ts';
+import { richPlain, replaceRich, escapeText } from './rich-text.ts';
 import { editText } from './text-formatting.ts';
 import { z } from 'zod';
 import {
@@ -9,6 +10,8 @@ import {
   commonShape,
   paired,
   nodeSchema,
+  definitionSchema,
+  type Definition,
   guideSchema,
   newGuide,
   newNode,
@@ -39,6 +42,15 @@ export const operationNames = {
   'replace-text': 'Substitute exact text',
   'replace-table': 'Substitute whole table',
   'repeal-guide': 'Repeal entire Guide',
+  'insert-definition': 'Insert definition',
+  'replace-definition': 'Substitute definition',
+  'omit-definition': 'Repeal definition',
+  'insert-defined-name': 'Insert defined document name',
+  'replace-defined-name': 'Substitute defined document name',
+  'omit-defined-name': 'Repeal defined document name',
+  'insert-text': 'Insert words',
+  'omit-text': 'Omit words',
+  'replace-front-matter': 'Substitute title or preamble',
 } as const;
 const actionSchema = z
   .object({
@@ -60,6 +72,16 @@ const actionSchema = z
     block: z.string().optional(),
     find: z.string().optional(),
     replacement: z.string().optional(),
+    definitionId: z.string().optional(),
+    definition: definitionSchema.optional(),
+    documentId: z.string().optional(),
+    alias: z
+      .object({ term: paired, titles: paired, orderBy: paired.optional() })
+      .strict()
+      .optional(),
+    frontField: z.enum(['titles', 'longTitle', 'preamble']).optional(),
+    frontPair: paired.optional(),
+    frontPreamble: commonShape.preamble.optional(),
     table: z
       .object({
         caption: paired,
@@ -79,10 +101,44 @@ export const amendmentSchema = z
     citationLabel: z.string(),
     introductionLabel: z.string(),
     actions: z.array(actionSchema),
+    supplemental: z.array(nodeSchema).optional(),
   })
   .strict()
   .superRefine(checkEnactment);
 export type Amendment = z.infer<typeof amendmentSchema>;
+/** A reference/validation view of an amendment's own provisions, separate from its effects. */
+export function amendmentGuide(a: Amendment, clauses: GeneratedClause[] = []): Guide {
+  const generated = [
+    {
+      id: 'citation',
+      label: a.citationLabel,
+      heading: pair('Short title and commencement', '簡稱及生效日期'),
+    },
+    ...(!a.actions.every((op) => op.type === 'repeal-guide')
+      ? [
+          {
+            id: 'introduction',
+            label: a.introductionLabel,
+            heading: pair('Style Guide amended', '修訂格式指引'),
+          },
+        ]
+      : []),
+    ...clauses.map((c) => ({ id: 'clause-' + c.label, label: c.label, heading: c.heading })),
+  ].map((c) => ({
+    ...newNode('section', c.label),
+    id: c.id,
+    heading: c.heading,
+    blocks: [
+      {
+        id: 'generated-' + c.id,
+        type: 'text' as const,
+        text: pair('Generated provision', '自動產生條文'),
+      },
+    ],
+  }));
+  const { source, citationLabel, introductionLabel, actions, supplemental, ...common } = a;
+  return { ...common, type: 'guide', nodes: [...generated, ...(supplemental ?? [])] };
+}
 export type Document = Guide | Amendment;
 export const parseDocument = (text: string): Document =>
   z.union([guideSchema, amendmentSchema]).parse(JSON.parse(text));
@@ -121,6 +177,32 @@ function tombstone(n: Node): Node {
     children: n.children.map(tombstone),
   };
 }
+/** Definition substitution cannot conceal enacted renumbering or relocation. */
+function preserveChildren(old: Node[], next: Node[]) {
+  const before = entries(old),
+    after = entries(next);
+  for (const e of after) {
+    const previous = before.find((p) => p.node.id === e.node.id);
+    if (
+      previous &&
+      (previous.node.kind !== e.node.kind ||
+        previous.node.label !== e.node.label ||
+        previous.parent?.id !== e.parent?.id ||
+        previous.definition?.id !== e.definition?.id)
+    )
+      throw Error('Cannot renumber or relocate definition paragraphs.');
+  }
+  for (const n of old) {
+    const found = next.find((x) => x.id === n.id);
+    if (found) preserveChildren(n.children, found.children);
+    else next.splice(Math.min(old.indexOf(n), next.length), 0, tombstone(n));
+  }
+  const surviving = next
+    .filter((n) => old.some((o) => o.id === n.id))
+    .map((n) => old.findIndex((o) => o.id === n.id));
+  if (surviving.some((n, i) => i > 0 && n < surviving[i - 1]))
+    throw Error('Cannot reorder enacted definition paragraphs.');
+}
 function actionEntry(g: Guide, a: Action) {
   const e = entries(g.nodes).find((e) => e.node.id === a.target);
   if (!e) throw Error('Target provision does not exist.');
@@ -140,9 +222,84 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
     next.repealed = true;
     return next;
   }
+  if (a.type === 'replace-front-matter') {
+    if (a.target !== g.id || !a.frontField) throw Error('Choose the principal title or preamble.');
+    if (a.frontField === 'preamble') {
+      if (!a.frontPreamble) throw Error('Supply the preamble.');
+      g.preamble = structuredClone(a.frontPreamble);
+    } else {
+      if (!a.frontPair) throw Error('Supply both language values.');
+      g[a.frontField] = { ...a.frontPair };
+    }
+    guideSchema.parse(g);
+    return next;
+  }
   const e = actionEntry(g, a),
     n = e.node;
   switch (a.type) {
+    case 'insert-definition':
+    case 'replace-definition':
+    case 'omit-definition':
+    case 'insert-defined-name':
+    case 'replace-defined-name':
+    case 'omit-defined-name': {
+      const list = n.blocks?.find((b) => b.id === a.block);
+      if (list?.type !== 'definitions') throw Error('Select the definition list.');
+      if (a.type.endsWith('defined-name')) {
+        if (!list.master || !a.documentId) throw Error('Select the master list and document.');
+        const old = g.aliases[a.documentId],
+          inserting = a.type === 'insert-defined-name';
+        if (inserting ? !!old : !old)
+          throw Error(
+            inserting
+              ? 'This document name is already defined.'
+              : 'The document name is not defined.',
+          );
+        if (a.type === 'omit-defined-name') {
+          list.items.push({
+            id: 'alias-' + a.documentId,
+            term: { ...old },
+            meaning: pair(),
+            repealed: true,
+          });
+          delete g.aliases[a.documentId];
+          if (g.aliasDetails) delete g.aliasDetails[a.documentId];
+        } else {
+          if (!a.alias) throw Error('Supply the short name and full formal titles.');
+          g.aliases[a.documentId] = { ...a.alias.term };
+          g.aliasDetails = {
+            ...g.aliasDetails,
+            [a.documentId]: { titles: { ...a.alias.titles }, orderBy: a.alias.orderBy },
+          };
+          list.items = list.items.filter((i) => i.id !== 'alias-' + a.documentId || !i.repealed);
+        }
+      } else {
+        const old = list.items.find((i) => i.id === a.definitionId);
+        if (a.type === 'insert-definition') {
+          if (!a.definition || list.items.some((i) => i.id === a.definition!.id))
+            throw Error('Supply a new definition identity.');
+          list.items.push(structuredClone(a.definition));
+        } else {
+          if (!old || old.repealed) throw Error('Choose a current definition.');
+          if (a.type === 'omit-definition') {
+            old.repealed = true;
+            old.meaning = pair();
+            old.children = old.children?.map(tombstone);
+            delete old.table;
+          } else {
+            if (!a.definition || a.definition.id !== old.id)
+              throw Error('Definition substitution must preserve identity.');
+            const replacement = structuredClone(a.definition);
+            preserveChildren(
+              old.children ?? [],
+              replacement.children ?? (replacement.children = []),
+            );
+            list.items[list.items.indexOf(old)] = replacement;
+          }
+        }
+      }
+      break;
+    }
     case 'insert-provision': {
       if (!a.node || !a.position) throw Error('Choose a position and supply the new provision.');
       const child = a.position === 'first' || a.position === 'last',
@@ -191,7 +348,8 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
           old &&
           (old.node.kind !== entry.node.kind ||
             old.node.label !== entry.node.label ||
-            old.parent?.id !== entry.parent?.id)
+            old.parent?.id !== entry.parent?.id ||
+            old.definition?.id !== entry.definition?.id)
         )
           throw Error('Substitution cannot renumber or relocate existing provisions.');
       }
@@ -224,6 +382,8 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
       e.list[e.list.indexOf(n)] = replacement;
       break;
     }
+    case 'insert-text':
+    case 'omit-text':
     case 'replace-text': {
       const b = n.blocks?.find((b) => b.id === a.block);
       if (!b || b.type === 'table' || b.type === 'definitions' || !a.language || !a.find)
@@ -246,14 +406,27 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
       ]);
       if (!boundaries.has(at) || !boundaries.has(at + a.find.length))
         throw Error('The selection splits a character.');
+      const replacement =
+        a.type === 'omit-text'
+          ? ''
+          : a.type === 'insert-text'
+            ? a.position === 'before'
+              ? (a.replacement ?? '') + a.find
+              : a.position === 'after'
+                ? a.find + (a.replacement ?? '')
+                : (() => {
+                    throw Error('Choose before or after the anchor.');
+                  })()
+            : (a.replacement ?? '');
+      if (a.type === 'insert-text' && !a.replacement) throw Error('Supply the inserted words.');
       Object.assign(
         b,
         editText(
           b,
           a.language,
           b.textFormat?.[a.language] === 'html'
-            ? replaceRich(b.text[a.language], a.find, a.replacement ?? '')
-            : text.slice(0, at) + (a.replacement ?? '') + text.slice(at + a.find.length),
+            ? replaceRich(b.text[a.language], a.find, replacement)
+            : text.slice(0, at) + replacement + text.slice(at + a.find.length),
         ),
       );
       break;
@@ -310,7 +483,13 @@ export type GeneratedClause = {
   id: string;
   label: string;
   heading: Pair;
-  items: { label: string; text: Pair; payload?: Node; table?: Action['table'] }[];
+  items: {
+    label: string;
+    text: Pair;
+    payload?: Node;
+    table?: Action['table'];
+    definition?: Definition;
+  }[];
 };
 export function owner(g: Guide, a: Action): string {
   if (
@@ -332,6 +511,27 @@ function quote(s: string) {
   return `“${s}”`;
 }
 export function instruction(g: Guide, a: Action): Pair {
+  if (a.type === 'replace-front-matter') {
+    const label =
+      a.frontField === 'titles'
+        ? pair('formal titles', '正式名稱')
+        : a.frontField === 'longTitle'
+          ? pair('long title', '詳題')
+          : pair('preamble', '序言');
+    const value =
+      a.frontField === 'preamble'
+        ? pair(
+            preambleText(a.frontPreamble ?? { mode: 'none', paragraph: pair(), items: [] }, 'en'),
+            preambleText(a.frontPreamble ?? { mode: 'none', paragraph: pair(), items: [] }, 'zh'),
+          )
+        : (a.frontPair ?? pair());
+    if (a.frontField === 'preamble' && a.frontPreamble?.mode === 'none')
+      return pair('The preamble is repealed.', '序言現予廢除。');
+    return pair(
+      `The ${label.en}—\nRepeal\nSubstitute ${quote(value.en)}.`,
+      `${label.zh}——\n廢除\n代以「${value.zh}」。`,
+    );
+  }
   if (a.type === 'repeal-guide')
     return pair(`The ${g.titles.en} is repealed.`, `《${g.titles.zh}》現予廢除。`);
   const e = entries(g.nodes).find((e) => e.node.id === a.target);
@@ -339,6 +539,36 @@ export function instruction(g: Guide, a: Action): Pair {
   const en = address(e, 'en'),
     zh = address(e, 'zh');
   switch (a.type) {
+    case 'insert-definition':
+    case 'replace-definition':
+    case 'omit-definition':
+    case 'insert-defined-name':
+    case 'replace-defined-name':
+    case 'omit-defined-name': {
+      const list = e.node.blocks?.find((b) => b.id === a.block);
+      const term = a.documentId
+        ? g.aliases[a.documentId]
+        : list?.type === 'definitions'
+          ? list.items.find((i) => i.id === a.definitionId)?.term
+          : undefined;
+      const insert = a.type.startsWith('insert'),
+        omit = a.type.startsWith('omit');
+      return pair(
+        `${en}, ${insert ? 'interpretation list' : `definition of ${quote(term?.en ?? '')}`}—\n${insert ? 'Add—' : omit ? 'Repeal the definition.' : 'Repeal the definition\nSubstitute—'}`,
+        `${zh}的${insert ? '釋義列表' : `「${term?.zh ?? ''}」的定義`}——\n${insert ? '加入——' : omit ? '廢除該定義。' : '廢除該定義\n代以——'}`,
+      );
+    }
+    case 'insert-text':
+      return pair(
+        `${en}, ${a.language === 'en' ? 'English' : 'Chinese'} text—\n${a.position === 'before' ? 'Before' : 'After'} ${quote(a.find ?? '')}\nAdd ${quote(a.replacement ?? '')}.`,
+        `${zh}的${a.language === 'en' ? '英文' : '中文'}文本——\n在「${a.find ?? ''}」${a.position === 'before' ? '之前' : '之後'}\n加入「${a.replacement ?? ''}」。`,
+      );
+    case 'omit-text':
+      return pair(
+        `${en}, ${a.language === 'en' ? 'English' : 'Chinese'} text—\nOmit ${quote(a.find ?? '')}.`,
+        `${zh}的${a.language === 'en' ? '英文' : '中文'}文本——\n刪去「${a.find ?? ''}」。`,
+      );
+
     case 'insert-provision':
       return pair(
         `${a.position === 'before' ? 'Before' : a.position === 'after' ? 'After' : a.position === 'first' ? 'At the beginning of' : 'At the end of'} ${en}—\nAdd—`,
@@ -427,6 +657,21 @@ export async function generate(base: Guide, a: Amendment): Promise<GeneratedClau
       text: instruction(state.guide, op),
       ...(['insert-provision', 'replace-provision'].includes(op.type) ? { payload: op.node } : {}),
       ...(op.type === 'replace-table' ? { table: op.table } : {}),
+      ...(['insert-definition', 'replace-definition'].includes(op.type)
+        ? { definition: op.definition }
+        : {}),
+      ...(['insert-defined-name', 'replace-defined-name'].includes(op.type) && op.alias
+        ? {
+            definition: {
+              id: 'alias-' + op.documentId,
+              term: op.alias.term,
+              meaning: pair(
+                'means ' + escapeText(op.alias.titles.en),
+                '指' + escapeText(op.alias.titles.zh),
+              ),
+            },
+          }
+        : {}),
     });
     state = await applyAction(state, op);
   }
@@ -441,9 +686,13 @@ export async function enactAmendment(
   if (a.stage !== 'draft') throw Error('Already enacted.');
   const opening = frontMatterIssues(a);
   if (opening.length) throw Error(opening[0].message);
-  const frontRefs = referenceIssues({ ...base, ...a, type: 'guide', nodes: [] }, catalogues);
-  if (frontRefs.some((i) => i.severity === 'error')) throw Error(frontRefs[0].message);
   const clauses = await generate(base, a);
+  const own = amendmentGuide(a, clauses);
+  guideSchema.parse(own);
+  const ownErrors = issues(own, catalogues).filter(
+    (i) => i.severity === 'error' || i.code === 'duplicate-number',
+  );
+  if (ownErrors.length) throw Error(ownErrors[0].message);
   const state = await proposed(base, a);
   if (!a.titles.en.trim() || !a.titles.zh.trim() || !a.actions.length)
     throw Error('Both titles and at least one action are required.');

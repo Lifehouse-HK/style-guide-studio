@@ -12,7 +12,7 @@ import {
   type Block,
   type Language,
 } from './document.ts';
-import { generate } from './amendments.ts';
+import { generate, amendmentGuide } from './amendments.ts';
 import { workspaceSchema, type Workspace } from './project.ts';
 import { escape } from './render.ts';
 const AKN = 'http://docs.oasis-open.org/legaldocml/ns/akn/3.0';
@@ -26,27 +26,30 @@ export async function exportXml(
   const d = workspace.document,
     e = escape;
   const p = (text: string) => `<p>${e(text)}</p>`;
-  const block = (b: Block) =>
+  let definitionGuide = d.type === 'guide' ? d : workspace.source!;
+  const block = (b: Block): string =>
     b.type === 'table'
       ? `<table eId="${e(b.id)}"><caption>${e(b.caption[language])}</caption>${b.rows.map((r, i) => `<tr>${r.map((c) => `<${i ? 'td' : 'th'}>${p(c)}</${i ? 'td' : 'th'}>`).join('')}</tr>`).join('')}</table>`
       : b.type === 'definitions'
-        ? `<blockList>${definitionRows(b, d.type === 'guide' ? d : workspace.source!, language)
+        ? `<blockList>${definitionRows(b, definitionGuide, language)
             .map((row, i, rows) => {
-              const guide = d.type === 'guide' ? d : workspace.source!;
+              const guide = definitionGuide;
               const target = row.documentId
                 ? definedDocument(row, guide, language, workspace.catalogues)
                 : undefined;
-              const meaning = target
-                ? e((language === 'en' ? 'means ' : '指') + target.title)
-                : parseRich(row.meaning[language])
-                    .map((run) =>
-                      run.marks.reduceRight((text, mark) => {
-                        const tag = { strong: 'b', em: 'i', u: 'u', code: 'span' }[mark];
-                        return `<${tag}>${text}</${tag}>`;
-                      }, e(run.text)),
-                    )
-                    .join('');
-              return `<item><p>“<def>${e(row.term[language])}</def>”${language === 'en' ? ' ' : ''}${meaning}${i === rows.length - 1 ? (language === 'en' ? '.' : '。') : language === 'en' ? ';' : '；'}</p></item>`;
+              const meaning = row.repealed
+                ? e(language === 'en' ? '[Repealed]' : '[已廢除]')
+                : target
+                  ? e((language === 'en' ? 'means ' : '指') + target.title)
+                  : parseRich(row.meaning[language])
+                      .map((run) =>
+                        run.marks.reduceRight((text, mark) => {
+                          const tag = { strong: 'b', em: 'i', u: 'u', code: 'span' }[mark];
+                          return `<${tag}>${text}</${tag}>`;
+                        }, e(run.text)),
+                      )
+                      .join('');
+              return `<item><p>“<def>${e(row.term[language])}</def>”${language === 'en' ? ' ' : ''}${meaning}${row.children?.length || row.table ? '' : i === rows.length - 1 ? (language === 'en' ? '.' : '。') : language === 'en' ? ';' : '；'}</p>${!row.repealed ? (row.table ? block(row.table) : '') + (row.children?.length ? `<blockList>${row.children.map(definitionBranch).join('')}</blockList>` : '') + (row.closing?.[language] ? p(row.closing[language]) : '') : ''}</item>`;
             })
             .join('')}</blockList>`
         : b.textFormat?.[language] === 'html'
@@ -67,6 +70,9 @@ export async function exportXml(
               )
               .join('')
           : p(b.text[language]);
+  function definitionBranch(n: Node): string {
+    return `<item eId="${e(n.id)}"><num>(${e(n.label)})</num>${n.repealed ? p(language === 'en' ? '[Repealed]' : '[已廢除]') : (n.blocks ?? []).map(block).join('') || p('')}${n.children.length ? `<blockList>${n.children.map(definitionBranch).join('')}</blockList>` : ''}${n.closing?.[language] ? p(n.closing[language]) : ''}</item>`;
+  }
   function node(n: Node, prefix = ''): string {
     const tag =
       (
@@ -109,6 +115,14 @@ export async function exportXml(
             (i.payload
               ? `<p><mod><quotedStructure>${node(i.payload, 'quote-' + c.id + '-' + index + '-')}</quotedStructure></mod></p>`
               : '') +
+            (i.definition
+              ? block({
+                  id: 'quote-' + c.id + '-' + index,
+                  type: 'definitions',
+                  master: false,
+                  items: [i.definition],
+                })
+              : '') +
             (i.table
               ? block({ ...i.table, id: 'table-' + c.id + '-' + index, type: 'table' })
               : '');
@@ -117,6 +131,8 @@ export async function exportXml(
             : `<subsection eId="${e(c.id)}-${index}"><num>(${e(i.label)})</num><content>${text}</content></subsection>`;
         })
         .join('')}</section>`;
+    definitionGuide = amendmentGuide(d, cs);
+    body += (d.supplemental ?? []).map((n) => node(n)).join('');
   }
   const lang = language === 'en' ? 'eng' : 'zho',
     date = d.enactment?.date ?? exportedDate,

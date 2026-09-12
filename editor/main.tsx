@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   newGuide,
+  guideSchema,
   newNode,
   pair,
   formula,
@@ -37,6 +38,7 @@ import {
   newAmendment,
   addAction,
   proposed,
+  amendmentGuide,
   generate,
   recheck,
   enactAmendment,
@@ -49,7 +51,16 @@ import {
 } from '../modules/amendments.ts';
 import { fetchCatalogue, publicCatalogue, type Catalogue } from '../modules/references.ts';
 import { render, type Layout } from '../modules/render.ts';
-import { Dialog, Field, PairFields, NodeFields, TableFields, Icon } from './forms.tsx';
+import {
+  Dialog,
+  Field,
+  PairFields,
+  NodeFields,
+  TableFields,
+  PayloadEditor,
+  DefinitionFields,
+  Icon,
+} from './forms.tsx';
 import { download, parseFile, saveRecovery, recoveryKey, type Workspace } from './storage.ts';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './style.css';
@@ -314,6 +325,14 @@ function App() {
             Amending actions ({doc.actions.length})
           </button>
         )}
+        {doc.type === 'amendment' && (
+          <button
+            className={page === 'supplemental' ? 'active' : ''}
+            onClick={() => navTab('supplemental')}
+          >
+            Supplemental provisions
+          </button>
+        )}
         <button className={page === 'checks' ? 'active' : ''} onClick={() => navTab('checks')}>
           Checks {diagnostics.length ? `(${diagnostics.length})` : ''}
         </button>
@@ -493,6 +512,15 @@ function App() {
             onError={report}
             onDirty={setPending}
             catalogues={workspace.catalogues}
+          />
+        )}
+        {page === 'supplemental' && doc.type === 'amendment' && (
+          <SupplementalEditor
+            key={doc.id + history.length}
+            document={doc}
+            catalogues={workspace.catalogues}
+            onSave={update}
+            onDirty={setPending}
           />
         )}
         {page === 'checks' && (
@@ -1738,8 +1766,13 @@ function ActionForm({
     if (type === 'insert-provision' && e) next.node = newNode(e.node.kind, '');
     if (type === 'replace-provision' && e) next.node = structuredClone(e.node);
     if (type === 'replace-heading') next.heading = { ...(e?.node.heading ?? pair()) };
-    if (type === 'replace-text') next.language = languages(guide)[0];
-    if (type === 'repeal-guide') next.target = guide.id;
+    if (['replace-text', 'insert-text', 'omit-text'].includes(type))
+      next.language = languages(guide)[0];
+    if (type === 'repeal-guide' || type === 'replace-front-matter') next.target = guide.id;
+    if (type === 'replace-front-matter') {
+      next.frontField = 'longTitle';
+      next.frontPair = { ...guide.longTitle };
+    }
     set(next);
   }
   const child = draft.position === 'first' || draft.position === 'last';
@@ -1774,7 +1807,7 @@ function ActionForm({
               ))}
             </select>
           </Field>
-          {draft.type !== 'repeal-guide' && (
+          {!['repeal-guide', 'replace-front-matter'].includes(draft.type) && (
             <Field label="Target provision">
               <select value={draft.target} required onChange={(e) => selectTarget(e.target.value)}>
                 <option value="">Select a target</option>
@@ -1880,56 +1913,57 @@ function ActionForm({
             onChange={(heading) => set({ ...draft, heading })}
           />
         )}
-        {['replace-text', 'replace-table'].includes(draft.type) && target && (
-          <Field label={draft.type === 'replace-table' ? 'Target table' : 'Target text block'}>
-            <select
-              required
-              value={draft.block ?? ''}
-              onChange={(e) => {
-                const b = target.node.blocks!.find((b) => b.id === e.target.value);
-                set({
-                  ...draft,
-                  block: e.target.value,
-                  ...(b?.type === 'table'
-                    ? {
-                        table: {
-                          caption: { ...b.caption },
-                          numbered: b.numbered,
-                          rows: structuredClone(b.rows),
-                        },
-                      }
-                    : {}),
-                });
-              }}
-            >
-              <option value="">Select block</option>
-              {target.node.blocks
-                ?.filter((b) =>
-                  draft.type === 'replace-table'
-                    ? b.type === 'table'
-                    : b.type !== 'table' && b.type !== 'definitions',
-                )
-                .map((b, i) => (
-                  <option key={b.id} value={b.id}>
-                    {i + 1}.{' '}
-                    {b.type === 'definitions'
-                      ? 'Definition list (substitute its containing provision)'
-                      : b.type === 'table'
-                        ? b.caption.en || 'Table'
-                        : (b.textFormat?.en === 'html' ? richPlain(b.text.en) : b.text.en).slice(
-                            0,
-                            70,
-                          ) ||
-                          (b.textFormat?.zh === 'html' ? richPlain(b.text.zh) : b.text.zh).slice(
-                            0,
-                            40,
-                          )}
-                  </option>
-                ))}
-            </select>
-          </Field>
-        )}
-        {draft.type === 'replace-text' && draft.block && (
+        {['replace-text', 'insert-text', 'omit-text', 'replace-table'].includes(draft.type) &&
+          target && (
+            <Field label={draft.type === 'replace-table' ? 'Target table' : 'Target text block'}>
+              <select
+                required
+                value={draft.block ?? ''}
+                onChange={(e) => {
+                  const b = target.node.blocks!.find((b) => b.id === e.target.value);
+                  set({
+                    ...draft,
+                    block: e.target.value,
+                    ...(b?.type === 'table'
+                      ? {
+                          table: {
+                            caption: { ...b.caption },
+                            numbered: b.numbered,
+                            rows: structuredClone(b.rows),
+                          },
+                        }
+                      : {}),
+                  });
+                }}
+              >
+                <option value="">Select block</option>
+                {target.node.blocks
+                  ?.filter((b) =>
+                    draft.type === 'replace-table'
+                      ? b.type === 'table'
+                      : b.type !== 'table' && b.type !== 'definitions',
+                  )
+                  .map((b, i) => (
+                    <option key={b.id} value={b.id}>
+                      {i + 1}.{' '}
+                      {b.type === 'definitions'
+                        ? 'Definition list (substitute its containing provision)'
+                        : b.type === 'table'
+                          ? b.caption.en || 'Table'
+                          : (b.textFormat?.en === 'html' ? richPlain(b.text.en) : b.text.en).slice(
+                              0,
+                              70,
+                            ) ||
+                            (b.textFormat?.zh === 'html' ? richPlain(b.text.zh) : b.text.zh).slice(
+                              0,
+                              40,
+                            )}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+          )}
+        {['replace-text', 'insert-text', 'omit-text'].includes(draft.type) && draft.block && (
           <>
             <Field label="Text language">
               <select
@@ -1954,13 +1988,312 @@ function ActionForm({
                   onChange={(e) => set({ ...draft, find: e.target.value })}
                 />
               </Field>
-              <Field label="Replacement text">
-                <textarea
-                  value={draft.replacement ?? ''}
-                  onChange={(e) => set({ ...draft, replacement: e.target.value })}
-                />
-              </Field>
+              {draft.type !== 'omit-text' && (
+                <Field
+                  label={draft.type === 'insert-text' ? 'Words to insert' : 'Replacement text'}
+                >
+                  <textarea
+                    value={draft.replacement ?? ''}
+                    onChange={(e) => set({ ...draft, replacement: e.target.value })}
+                  />
+                </Field>
+              )}
             </div>
+          </>
+        )}
+        {draft.type === 'insert-text' && (
+          <Field label="Insert relative to anchor">
+            <select
+              value={draft.position ?? 'after'}
+              onChange={(e) => set({ ...draft, position: e.target.value as 'before' | 'after' })}
+            >
+              <option value="before">Before</option>
+              <option value="after">After</option>
+            </select>
+          </Field>
+        )}
+        {draft.type === 'replace-front-matter' && (
+          <>
+            <Field label="Front matter">
+              <select
+                value={draft.frontField}
+                onChange={(e) => {
+                  const field = e.target.value as 'titles' | 'longTitle' | 'preamble';
+                  set({
+                    ...draft,
+                    frontField: field,
+                    frontPair: field === 'preamble' ? undefined : { ...guide[field] },
+                    frontPreamble:
+                      field === 'preamble' ? structuredClone(guide.preamble) : undefined,
+                  });
+                }}
+              >
+                <option value="titles">Formal titles</option>
+                <option value="longTitle">Long title</option>
+                <option value="preamble">Preamble</option>
+              </select>
+            </Field>
+            {draft.frontField === 'preamble' ? (
+              <>
+                <Field label="Preamble format">
+                  <select
+                    value={draft.frontPreamble?.mode ?? 'none'}
+                    onChange={(e) =>
+                      set({
+                        ...draft,
+                        frontPreamble: {
+                          ...(draft.frontPreamble ?? guide.preamble),
+                          mode: e.target.value as 'none' | 'paragraph' | 'list',
+                        },
+                      })
+                    }
+                  >
+                    <option value="none">No preamble</option>
+                    <option value="paragraph">Paragraph</option>
+                    <option value="list">Numbered recitals</option>
+                  </select>
+                </Field>
+                {draft.frontPreamble?.mode === 'paragraph' && (
+                  <PairFields
+                    label="Replacement preamble"
+                    multiline
+                    mode={guide.mode}
+                    value={draft.frontPreamble.paragraph}
+                    onChange={(paragraph) =>
+                      set({ ...draft, frontPreamble: { ...draft.frontPreamble!, paragraph } })
+                    }
+                  />
+                )}
+                {draft.frontPreamble?.mode === 'list' && (
+                  <>
+                    {draft.frontPreamble.items.map((item, i) => (
+                      <div key={i}>
+                        <PairFields
+                          label={`Recital ${i + 1}`}
+                          multiline
+                          mode={guide.mode}
+                          value={item}
+                          onChange={(value) =>
+                            set({
+                              ...draft,
+                              frontPreamble: {
+                                ...draft.frontPreamble!,
+                                items: draft.frontPreamble!.items.map((p, j) =>
+                                  i === j ? value : p,
+                                ),
+                              },
+                            })
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            set({
+                              ...draft,
+                              frontPreamble: {
+                                ...draft.frontPreamble!,
+                                items: draft.frontPreamble!.items.filter((_, j) => i !== j),
+                              },
+                            })
+                          }
+                        >
+                          Remove recital {i + 1}
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        set({
+                          ...draft,
+                          frontPreamble: {
+                            ...draft.frontPreamble!,
+                            items: [...draft.frontPreamble!.items, pair()],
+                          },
+                        })
+                      }
+                    >
+                      Add recital
+                    </button>
+                  </>
+                )}
+              </>
+            ) : (
+              <PairFields
+                label="Replacement wording"
+                value={draft.frontPair ?? pair()}
+                mode={draft.frontField === 'titles' ? 'parallel' : guide.mode}
+                multiline
+                onChange={(frontPair) => set({ ...draft, frontPair })}
+              />
+            )}
+          </>
+        )}
+        {(draft.type.endsWith('definition') || draft.type.endsWith('defined-name')) && target && (
+          <>
+            <Field label="Definition list">
+              <select
+                value={draft.block ?? ''}
+                onChange={(e) =>
+                  set({
+                    ...draft,
+                    block: e.target.value,
+                    definitionId: undefined,
+                    definition: undefined,
+                    documentId: undefined,
+                    alias: undefined,
+                  })
+                }
+              >
+                <option value="">Choose list</option>
+                {target.node.blocks
+                  ?.filter(
+                    (b) =>
+                      b.type === 'definitions' &&
+                      (!draft.type.endsWith('defined-name') || b.master),
+                  )
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.type === 'definitions' && b.master
+                        ? 'Master definitions'
+                        : 'Local definitions'}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+            {draft.block &&
+              (draft.type.endsWith('defined-name') ? (
+                <>
+                  <Field label="Defined document">
+                    <select
+                      value={draft.documentId ?? ''}
+                      onChange={(e) => {
+                        const documentId = e.target.value;
+                        const old = guide.aliasDetails?.[documentId];
+                        const published = catalogues
+                          .flatMap((c) => c.documents)
+                          .find((d) => d.id === documentId);
+                        set({
+                          ...draft,
+                          documentId,
+                          alias: {
+                            term: guide.aliases[documentId] ?? pair(),
+                            titles: old?.titles ?? published?.titles ?? pair(),
+                            orderBy: old?.orderBy,
+                          },
+                        });
+                      }}
+                    >
+                      <option value="">Choose document</option>
+                      {[
+                        ...new Set([
+                          ...Object.keys(guide.aliases),
+                          ...catalogues.flatMap((c) => c.documents.map((d) => d.id)),
+                        ]),
+                      ]
+                        .filter((id) =>
+                          draft.type === 'insert-defined-name'
+                            ? !guide.aliases[id]
+                            : !!guide.aliases[id],
+                        )
+                        .map((id) => (
+                          <option key={id} value={id}>
+                            {guide.aliasDetails?.[id]?.titles.en ||
+                              catalogues.flatMap((c) => c.documents).find((d) => d.id === id)
+                                ?.titles.en ||
+                              id}
+                          </option>
+                        ))}
+                    </select>
+                  </Field>
+                  {draft.alias && draft.type !== 'omit-defined-name' && (
+                    <>
+                      <PairFields
+                        label="Defined short name"
+                        value={draft.alias.term}
+                        mode={guide.mode}
+                        onChange={(term) => set({ ...draft, alias: { ...draft.alias!, term } })}
+                      />
+                      <PairFields
+                        label="Formal document title"
+                        value={draft.alias.titles}
+                        onChange={(titles) => set({ ...draft, alias: { ...draft.alias!, titles } })}
+                      />
+                      <PairFields
+                        label="Order by (optional)"
+                        value={draft.alias.orderBy ?? pair()}
+                        mode={guide.mode}
+                        onChange={(orderBy) =>
+                          set({ ...draft, alias: { ...draft.alias!, orderBy } })
+                        }
+                      />
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {draft.type === 'insert-definition' ? (
+                    !draft.definition && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          set({ ...draft, definition: { id: id(), term: pair(), meaning: pair() } })
+                        }
+                      >
+                        Create definition
+                      </button>
+                    )
+                  ) : (
+                    <Field label="Definition">
+                      <select
+                        value={draft.definitionId ?? ''}
+                        onChange={(e) => {
+                          const b = target.node.blocks!.find((b) => b.id === draft.block);
+                          const item =
+                            b?.type === 'definitions'
+                              ? b.items.find((i) => i.id === e.target.value)
+                              : undefined;
+                          set({
+                            ...draft,
+                            definitionId: e.target.value,
+                            definition: item ? structuredClone(item) : undefined,
+                          });
+                        }}
+                      >
+                        <option value="">Choose term</option>
+                        {target.node.blocks?.flatMap((b) =>
+                          b.id === draft.block && b.type === 'definitions'
+                            ? b.items
+                                .filter((i) => !i.repealed)
+                                .map((i) => (
+                                  <option key={i.id} value={i.id}>
+                                    {i.term.en || i.term.zh}
+                                  </option>
+                                ))
+                            : [],
+                        )}
+                      </select>
+                    </Field>
+                  )}
+                  {draft.definition && draft.type !== 'omit-definition' && (
+                    <DefinitionFields
+                      value={{
+                        id: 'definition-payload',
+                        type: 'definitions',
+                        master: false,
+                        items: [draft.definition],
+                      }}
+                      guide={guide}
+                      catalogues={catalogues}
+                      onChange={(list) => {
+                        if (list.items.length !== 1) return;
+                        set({ ...draft, definition: list.items[0] });
+                      }}
+                      single
+                    />
+                  )}
+                </>
+              ))}
           </>
         )}
         {draft.type === 'replace-table' && draft.table && (
@@ -1980,119 +2313,157 @@ function ActionForm({
     </form>
   );
 }
-function PayloadEditor({
-  value,
-  guide,
+function SupplementalEditor({
+  document: doc,
   catalogues,
-  onChange,
-  lockIdentity,
+  onSave,
+  onDirty,
 }: {
-  value: Node;
-  guide: Guide;
+  document: Amendment;
   catalogues: Catalogue[];
-  onChange: (n: Node) => void;
-  lockIdentity: boolean;
+  onSave: (d: Document) => void;
+  onDirty: (b: boolean) => void;
 }) {
-  const [selected, setSelected] = useState(value.id),
-    [adding, setAdding] = useState(false),
-    [kind, setKind] = useState<Kind>('section'),
-    [label, setLabel] = useState('');
-  const e = entries([value]).find((e) => e.node.id === selected) ?? entries([value])[0];
-  const schedule =
-    guide.nodes.some(
-      (n) =>
-        ['schedule', 'appendix'].includes(n.kind) &&
-        entries([n]).some((x) => x.node.id === value.id),
-    ) || inSchedule(e);
-  const choices = allowed(e.node, schedule);
+  const [draft, setDraft] = useState<Node | null>(null),
+    [kind, setKind] = useState<'section' | 'schedule'>('section'),
+    [label, setLabel] = useState(''),
+    [error, setError] = useState(''),
+    [changed, setChanged] = useState(false);
+  const guide = amendmentGuide(doc);
   return (
-    <section className="payload">
-      <h3>Replacement / inserted structure</h3>
-      <select
-        aria-label="Payload provision"
-        value={e.node.id}
-        onChange={(ev) => setSelected(ev.target.value)}
-      >
-        {entries([value]).map((e) => (
-          <option key={e.node.id} value={e.node.id}>
-            {names[e.node.kind].en} {e.node.label} — {e.node.heading?.en}
-          </option>
-        ))}
-      </select>
-      <NodeFields
-        value={e.node}
-        guide={guide}
-        catalogues={catalogues}
-        lockIdentity={lockIdentity && e.node.id === value.id}
-        onChange={(n) => {
-          const copy = structuredClone(value);
-          if (n.id === copy.id) onChange(n);
-          else {
-            const target = entries([copy]).find((e) => e.node.id === n.id)!;
-            target.list[target.list.indexOf(target.node)] = n;
-            onChange(copy);
-          }
-        }}
-      />
-      <div className="toolbar">
-        <button
-          type="button"
-          disabled={!choices.length}
-          onClick={() => {
-            setKind(choices[0]);
-            setAdding(true);
-          }}
-        >
-          Add child to this payload…
-        </button>
-        {e.node.id !== value.id && (
-          <button
-            type="button"
-            onClick={() => {
-              const copy = structuredClone(value),
-                t = entries([copy]).find((x) => x.node.id === e.node.id)!;
-              t.list.splice(t.list.indexOf(t.node), 1);
-              onChange(copy);
-              setSelected(value.id);
-            }}
-          >
-            Remove payload child
-          </button>
-        )}
-      </div>
-      {adding && (
-        <div className="payload-add">
-          <Field label={`New child inside ${names[e.node.kind].en} ${e.node.label}`}>
-            <select value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
-              {choices.map((k) => (
-                <option value={k} key={k}>
-                  {names[k].en}
-                </option>
-              ))}
+    <section className="full">
+      <h1>Supplemental provisions</h1>
+      <p>
+        Standalone transitional or savings provisions and Schedules belong to this amendment. They
+        do not automatically change the principal Guide; use amending actions for those changes.
+      </p>
+      {error && (
+        <p role="alert" className="warning">
+          {error}
+        </p>
+      )}
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Provision</th>
+            <th>Heading</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {doc.supplemental?.map((n) => (
+            <tr key={n.id}>
+              <td>
+                {names[n.kind].en} {n.label}
+              </td>
+              <td>{n.heading?.en}</td>
+              <td>
+                <button
+                  onClick={() => {
+                    if (changed) {
+                      setError('Save or discard the current supplemental provision first.');
+                      return;
+                    }
+                    setDraft(structuredClone(n));
+                  }}
+                >
+                  Open provision
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <fieldset disabled={doc.stage !== 'draft'}>
+        <div className="field-row">
+          <Field label="Supplemental level">
+            <select
+              value={kind}
+              onChange={(e) => setKind(e.target.value as 'section' | 'schedule')}
+            >
+              <option value="section">Section</option>
+              <option value="schedule">Schedule</option>
             </select>
           </Field>
-          <Field label="Manual number">
+          <Field label="Manual supplemental number">
             <input value={label} onChange={(e) => setLabel(e.target.value)} />
           </Field>
           <button
-            type="button"
+            disabled={changed}
             onClick={() => {
-              const copy = structuredClone(value),
-                t = entries([copy]).find((x) => x.node.id === e.node.id)!,
-                n = newNode(kind, label);
-              t.node.children.push(n);
-              onChange(copy);
-              setSelected(n.id);
-              setAdding(false);
-              setLabel('');
+              setDraft(newNode(kind, label));
+              setChanged(true);
+              onDirty(true);
             }}
           >
-            Add child
-          </button>
-          <button type="button" onClick={() => setAdding(false)}>
-            Cancel
+            Add supplemental provision
           </button>
         </div>
+      </fieldset>
+      {draft && (
+        <>
+          <fieldset disabled={doc.stage !== 'draft'}>
+            <PayloadEditor
+              key={draft.id}
+              value={draft}
+              guide={guide}
+              catalogues={catalogues}
+              lockIdentity={false}
+              onChange={(n) => {
+                setDraft(n);
+                setChanged(true);
+                onDirty(true);
+              }}
+            />
+          </fieldset>
+          {doc.stage === 'draft' && (
+            <div className="toolbar">
+              <button
+                disabled={!changed}
+                onClick={() => {
+                  try {
+                    const next = {
+                      ...doc,
+                      supplemental: [
+                        ...(doc.supplemental ?? []).filter((n) => n.id !== draft.id),
+                        draft,
+                      ],
+                    };
+                    guideSchema.parse(amendmentGuide(next));
+                    onSave(next);
+                    setChanged(false);
+                    onDirty(false);
+                  } catch (e) {
+                    setError(String(e));
+                  }
+                }}
+              >
+                Save supplemental provision
+              </button>
+              <button
+                onClick={() => {
+                  setDraft(null);
+                  setChanged(false);
+                  onDirty(false);
+                }}
+              >
+                Discard supplemental changes
+              </button>
+              <button
+                disabled={changed}
+                onClick={() => {
+                  onSave({
+                    ...doc,
+                    supplemental: doc.supplemental?.filter((n) => n.id !== draft.id),
+                  });
+                  setDraft(null);
+                }}
+              >
+                Remove supplemental provision
+              </button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

@@ -17,7 +17,13 @@ import {
   type Block,
   type TextBlock,
 } from './document.ts';
-import { generate, type Document, type Amendment, type Revision } from './amendments.ts';
+import {
+  generate,
+  amendmentGuide,
+  type Document,
+  type Amendment,
+  type Revision,
+} from './amendments.ts';
 import { resolve, type Catalogue } from './references.ts';
 export type Layout = 'en' | 'zh' | 'parallel';
 export const escape = (s: string) =>
@@ -28,7 +34,7 @@ export const escape = (s: string) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 export const stylesheet = `
-.definitions{margin:8px 0 12px}.definition-entry{margin:6px 0 6px 2.3em}.definition-entry p{margin:0}.definition-entry{break-inside:avoid}
+.definition-branches{margin-left:2.3em}.definitions{margin:8px 0 12px}.definition-entry{margin:6px 0 6px 2.3em}.definition-entry p{margin:0}.definition-entry{break-inside:avoid}
 .small-caps{font-variant-caps:small-caps}.preamble-intro{break-after:avoid}
 .document-heading{break-inside:avoid}.publication-logo{display:block;width:44mm;height:auto;max-width:100%;margin:0 auto 5mm}
 @page{size:A4;margin:20mm 18mm;@bottom-center{content:counter(page);font-size:10pt}}*{box-sizing:border-box}body{max-width:900px;margin:30px auto;padding:0 28px;font-family:"Times New Roman","Noto Serif CJK TC","Songti TC",serif;font-size:12pt;line-height:1.55;color:#111}h1{text-align:center;font-size:20pt;line-height:1.3}h2{font-size:15pt;text-align:center;margin:24px 0 12px}h3{font-size:12pt;margin:18px 0 6px}p{margin:6px 0}.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:25px}.pair>*{min-width:0}.children{margin-left:1.7em}.number{display:inline-block;min-width:2.3em;font-weight:normal}.status{border-block:1px solid #555;padding:8px 0;text-align:center;margin:20px 0;font-family:system-ui,sans-serif;font-size:10pt}.clause{margin:12px 0}.group{margin-top:25px}.muted{color:#555}.note{font-size:10pt;border-left:2px solid #bbb;padding-left:10px}blockquote{margin:8px 0 12px 22px;border-left:2px solid #aaa;padding-left:15px}table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11pt;table-layout:fixed}th,td{border:1px solid #777;padding:6px;vertical-align:top;overflow-wrap:anywhere}th{font-weight:bold}caption{text-align:left;font-weight:bold}thead{display:table-header-group}.row-number{width:3em}tr{break-inside:avoid}a{color:#134f80;text-decoration:underline}code{font-family:monospace;font-size:.9em}nav{border-bottom:1px solid #777;padding:12px 0;margin-bottom:24px}nav ul{list-style:none;padding-left:15px}nav a{color:inherit}h2,h3{break-after:avoid}.warning{color:#8c2a15}.parallel{max-width:1400px}.shared{grid-column:1/-1}.history{font-size:10pt;border-top:1px solid #777;margin-top:30px}@media print{body{margin:0;padding:0;max-width:none}a{color:inherit}.status{font-family:serif}.no-print{display:none}}
@@ -102,8 +108,9 @@ export async function render(
     langs: Language[] = layout === 'parallel' ? ['en', 'zh'] : [layout],
     g = document.type === 'guide' ? document : source;
   if (!g) throw Error('Load the amendment source to generate the proof.');
+  let referenceGuide = g;
   const esc = escape,
-    fmt = (s: string, l: Language) => inline(s, g, l, options.catalogues, options.pdf),
+    fmt = (s: string, l: Language) => inline(s, referenceGuide, l, options.catalogues, options.pdf),
     paired = (fn: (l: Language) => string) =>
       layout === 'parallel'
         ? `<div class="pair">${langs.map((l) => `<div lang="${l === 'zh' ? 'zh-Hant' : 'en'}">${fn(l)}</div>`).join('')}</div>`
@@ -122,29 +129,48 @@ export async function render(
       .split('\n')
       .map(
         (text, i) =>
-          `<p style="text-align:${alignment[i]}"${b.type === 'note' ? ' class="note"' : ''}>${i === 0 ? prefix : ''}${(b.textFormat?.[l] === 'html' ? richInline(text, g, l, options.catalogues, options.pdf) : fmt(text, l)) || '<br>'}</p>`,
+          `<p style="text-align:${alignment[i]}"${b.type === 'note' ? ' class="note"' : ''}>${i === 0 ? prefix : ''}${(b.textFormat?.[l] === 'html' ? richInline(text, referenceGuide, l, options.catalogues, options.pdf) : fmt(text, l)) || '<br>'}</p>`,
       )
       .join('');
   };
-  const block = (b: Block) =>
+  const block = (b: Block): string =>
     b.type === 'table'
       ? `<div class="shared">${table(b)}</div>`
       : b.type === 'definitions'
-        ? `<div class="definitions">${definitionRows(b, g, layout === 'zh' ? 'zh' : 'en')
-            .map((row, i, rows) =>
-              paired((l) => {
-                const target = row.documentId
-                  ? definedDocument(row, g, l, options.catalogues, options.pdf)
-                  : undefined;
-                const meaning = target
-                  ? `${l === 'en' ? 'means ' : '指'}${target.href ? `<a href="${esc(target.href)}">${esc(target.title)}</a>` : esc(target.title)}`
-                  : richInline(row.meaning[l], g, l, options.catalogues, options.pdf).replaceAll(
-                      '\n',
-                      '<br>',
-                    );
-                return `<div class="definition-entry"${l === langs[0] ? ` id="${esc(definitionAnchor(b.id, row.documentId ? 'alias-' + row.documentId : row.id))}"` : ''}><p>“${esc(row.term[l])}”${l === 'en' ? ' ' : ''}${meaning}${i === rows.length - 1 ? (l === 'en' ? '.' : '。') : l === 'en' ? ';' : '；'}</p></div>`;
-              }),
-            )
+        ? `<div class="definitions">${definitionRows(
+            b,
+            referenceGuide,
+            layout === 'zh' ? 'zh' : 'en',
+          )
+            .map((row, i, rows) => {
+              const nested = !!row.children?.length || !!row.table;
+              const punctuation = (l: Language) =>
+                i === rows.length - 1 ? (l === 'en' ? '.' : '。') : l === 'en' ? ';' : '；';
+              return (
+                paired((l) => {
+                  const target = row.documentId
+                    ? definedDocument(row, referenceGuide, l, options.catalogues, options.pdf)
+                    : undefined;
+                  const meaning = row.repealed
+                    ? l === 'en'
+                      ? '[Repealed]'
+                      : '[已廢除]'
+                    : target
+                      ? `${l === 'en' ? 'means ' : '指'}${target.href ? `<a href="${esc(target.href)}">${esc(target.title)}</a>` : esc(target.title)}`
+                      : richInline(
+                          row.meaning[l],
+                          g,
+                          l,
+                          options.catalogues,
+                          options.pdf,
+                        ).replaceAll('\n', '<br>');
+                  return `<div class="definition-entry"${l === langs[0] ? ` id="${esc(definitionAnchor(b.id, row.documentId ? 'alias-' + row.documentId : row.id))}"` : ''}><p>“${esc(row.term[l])}”${l === 'en' ? ' ' : ''}${meaning}${!nested ? punctuation(l) : ''}</p></div>`;
+                }) +
+                (nested && !row.repealed
+                  ? `<div class="definition-branches">${row.table ? block(row.table) : ''}${row.children?.map((n) => node(n)).join('') ?? ''}${row.closing ? paired((l) => `<p>${fmt(row.closing![l], l)}${punctuation(l)}</p>`) : ''}</div>`
+                  : '')
+              );
+            })
             .join('')}</div>`
         : paired((l) =>
             b.type === 'quote' ? `<blockquote>${paragraphs(b, l)}</blockquote>` : paragraphs(b, l),
@@ -237,11 +263,16 @@ export async function render(
                   `<p>${c.items.length > 1 ? `<span class="number">(${esc(i.label)})</span>` : ''}${esc(i.text[l]).replaceAll('\n', '<br>')}</p>`,
               ) +
               (i.payload ? `<blockquote>${node(i.payload, true)}</blockquote>` : '') +
-              (i.table ? `<blockquote>${table(i.table)}</blockquote>` : ''),
+              (i.table ? `<blockquote>${table(i.table)}</blockquote>` : '') +
+              (i.definition
+                ? `<blockquote>${block({ id: 'quote-' + c.id + '-' + i.label, type: 'definitions', master: false, items: [i.definition] })}</blockquote>`
+                : ''),
           )
           .join(''),
         'clause-' + c.label,
       );
+    referenceGuide = amendmentGuide(document, clauses);
+    body += (document.supplemental ?? []).map((n) => node(n)).join('');
   }
   const toc =
     document.type === 'guide'

@@ -97,8 +97,8 @@ No implementation phase is active. Local definition-list work and the requested 
 User authorised implementation of all audit follow-ups and push. Preserve deliberate exclusions (enacted relocation/renumbering/splitting/merging, generic XML import and removed structures).
 
 - [x] R1: Reference integrity, PDF print destinations, front-matter validation/projection and failed-save recovery (A1–A6, A13–A14).
-- [~] R2: Definition/alias and word/front-matter amendment lifecycle; nested definition content; supplemental amendment provisions (A7–A12).
-- [ ] R3: Amendment annotations, search/comparison, publication builder and separate corpus repository (A15–A16, A20).
+- [x] R2: Definition/alias and word/front-matter amendment lifecycle; nested definition content; supplemental amendment provisions (A7–A12).
+- [~] R3: Amendment annotations, search/comparison, publication builder and separate corpus repository (A15–A16, A20).
 - [ ] R4: Linux/browser/PDF CI, format compatibility and bounded accessibility/IME checks; push and deploy (A17–A19).
 
 Routine choices: use right-aligned latest amendment notes linking a full history, deterministic source-profile version compatibility, free serif font fallbacks on Linux, and a separate `church-publication-guides` corpus repository. Actual team enactments are not invented; an empty corpus can be deployed until genuine enacted documents are supplied.
@@ -110,3 +110,5 @@ Routine choices: use right-aligned latest amendment notes linking a full history
 - A3 complete: browser printing prepares a separate PDF-link expression and waits for its fonts/images before printing. Focused print URL test and type check passed (2026-09-12).
 
 - A5 complete: XML projection v2 shares preamble opening rules with HTML/PDF; exact version-one XML remains reopenable without rewriting its source. Unknown projection versions fail explicitly. Type check and 6 focused render/print/XML tests passed (2026-09-12).
+
+- A7–A12 implemented: individual definition and document-name lifecycle, structured definition branches/tables, word insertion/omission, front-matter amendments and standalone supplemental sections/Schedules. Type check and 5 focused extended-amendment tests passed; earlier full 37-test suite passed. Actual browser authoring of nested definition insertion, defined-name insertion and supplemental section passed; paired amendment XML validated against OASIS.
