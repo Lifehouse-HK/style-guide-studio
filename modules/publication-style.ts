@@ -31,7 +31,7 @@ h3{font-size:${printProfile.bodySize}pt;line-height:${printProfile.leading}pt;fo
 .preamble{margin:12pt 0}.preamble p{margin-bottom:8pt}.enacting{margin:18pt 0 24pt}.enacting p{margin:0}
 .enacting p:lang(en)::first-letter{float:left;font-size:33pt;line-height:26pt;margin:0 3pt 0 0}
 .pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:${printProfile.parallelGutter}pt}.pair>*{min-width:0}
-.clause,.group,.children{margin:0}.section,.scheduleParagraph{margin-top:18pt}
+.clause,.group,.children{margin:0}
 .provision-text{margin-left:var(--text-indent,${printProfile.indent}pt)}.provision-text + .provision-text{margin-top:8pt}
 .number{float:left;width:24pt;margin-left:-${printProfile.indent}pt;margin-right:12pt;text-align:right;white-space:nowrap;font-weight:normal}
 .numbered-line{position:relative}.subsection + .subsection,.subparagraph + .subparagraph{margin-top:8pt}
