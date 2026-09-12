@@ -1,3 +1,4 @@
+import { printPublication } from './print.ts';
 import { ApiAmendmentDialog } from './api-amendment.tsx';
 import publicationLogo from '../assets/branding/lifehouse-hong-kong-stacked.png?inline';
 import { richPlain } from '../modules/rich-text.ts';
@@ -623,8 +624,12 @@ function App() {
               <button
                 disabled={!proof}
                 onClick={() => {
-                  const f = document.getElementById('proof-frame') as HTMLIFrameElement;
-                  f.contentWindow?.print();
+                  void printPublication(
+                    workspace,
+                    doc.mode === 'parallel' ? layout : doc.mode,
+                    publicationLogo,
+                    proofKind === 'proposed',
+                  ).catch(report);
                 }}
               >
                 <Icon name="printer" /> Print / Save PDF

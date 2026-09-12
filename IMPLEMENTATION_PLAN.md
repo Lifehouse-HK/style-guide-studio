@@ -106,3 +106,5 @@ Routine choices: use right-aligned latest amendment notes linking a full history
 - A2 complete: reference parsing spans rich-text runs, preserving formatting and literal-code examples. Type check and 3 focused rich-text tests passed (2026-09-12).
 
 - A1/A4/A13 complete: shared reference and front-matter validation reaches enactment/API builds; missing/draft references are errors and repealed references warnings. Whole-document and definition destinations are available. A6/A14 also corrected: failed provision saves retain dirty state and saved aliases remain selectable offline. Fresh 31-test suite passed (2026-09-12).
+
+- A3 complete: browser printing prepares a separate PDF-link expression and waits for its fonts/images before printing. Focused print URL test and type check passed (2026-09-12).
