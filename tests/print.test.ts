@@ -23,3 +23,19 @@ test('browser print expression uses PDF URLs for whole documents and provisions'
   assert.match(html, /href="https:\/\/example.org\/external\/en.pdf#/);
   assert.doesNotMatch(html, /external\/en.html/);
 });
+
+test('XML generates the preamble opening and can still reopen unchanged version-one exports', async () => {
+  const { exportXml, importXml } = await import('../modules/xml.ts');
+  const g = specimen();
+  g.preamble.mode = 'paragraph';
+  g.preamble.paragraph = { en: 'A reason.', zh: '理由。' };
+  const w = { format: 'lifehouse-workspace/2' as const, document: g, catalogues: [] };
+  for (const l of ['en', 'zh'] as const) {
+    const xml = await exportXml(w, l);
+    assert.ok(xml.includes(l === 'en' ? 'WHEREAS— A reason.' : '鑑於—— 理由。'));
+    assert.deepEqual(await importXml(xml), w);
+  }
+  const old = await exportXml(w, 'en', '2026-09-12', 1);
+  assert.ok(!old.includes('WHEREAS'));
+  assert.deepEqual(await importXml(old), w);
+});

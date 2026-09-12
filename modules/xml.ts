@@ -1,3 +1,4 @@
+import { preambleOpening, recitalText } from './front-matter.ts';
 import { definitionRows, definedDocument } from './definitions.ts';
 import { parseRich } from './rich-text.ts';
 import { DOMParser } from '@xmldom/xmldom';
@@ -20,6 +21,7 @@ export async function exportXml(
   workspace: Workspace,
   language: Language,
   exportedDate = new Date().toISOString().slice(0, 10),
+  projectionVersion: 1 | 2 = 2,
 ): Promise<string> {
   const d = workspace.document,
     e = escape;
@@ -131,11 +133,24 @@ export async function exportXml(
     .join('');
   const preamble =
     d.preamble.mode === 'paragraph'
-      ? p(d.preamble.paragraph[language])
+      ? p(
+          projectionVersion === 1
+            ? d.preamble.paragraph[language]
+            : preambleOpening(language) +
+                ' ' +
+                recitalText(d.preamble.paragraph[language], language),
+        )
       : d.preamble.mode === 'list'
-        ? d.preamble.items.map((item, i) => p(`${i + 1}. ${item[language]}`)).join('')
+        ? (projectionVersion === 2 ? p(preambleOpening(language)) : '') +
+          d.preamble.items
+            .map((item, i) =>
+              p(
+                `${i + 1}. ${projectionVersion === 2 && i === 0 ? recitalText(item[language], language) : item[language]}`,
+              ),
+            )
+            .join('')
         : '';
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<akomaNtoso xmlns="${AKN}" xmlns:sg="urn:lifehouse:guide:2"><${kind} name="styleGuide"><meta><identification source="#translation-team">${identification}</identification><references source="#translation-team"><TLCOrganization eId="translation-team" href="/ontology/organization/hk/lifehouse-translation-team" showAs="Translation Team of the Dream Team of Lifehouse Hong Kong"/></references><proprietary source="#translation-team"><sg:project language="${language}" exportedDate="${exportedDate}" digest="${await digest(workspace)}">${e(canonical(workspace))}</sg:project></proprietary></meta><preface><p><docTitle>${e(d.titles[language])}</docTitle></p><longTitle>${p(d.longTitle[language])}</longTitle></preface><preamble>${preamble}<formula name="enacting">${p(d.formula[language])}</formula></preamble><body>${body}</body></${kind}></akomaNtoso>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<akomaNtoso xmlns="${AKN}" xmlns:sg="urn:lifehouse:guide:2"><${kind} name="styleGuide"><meta><identification source="#translation-team">${identification}</identification><references source="#translation-team"><TLCOrganization eId="translation-team" href="/ontology/organization/hk/lifehouse-translation-team" showAs="Translation Team of the Dream Team of Lifehouse Hong Kong"/></references><proprietary source="#translation-team"><sg:project${projectionVersion === 2 ? ' projectionVersion="2"' : ''} language="${language}" exportedDate="${exportedDate}" digest="${await digest(workspace)}">${e(canonical(workspace))}</sg:project></proprietary></meta><preface><p><docTitle>${e(d.titles[language])}</docTitle></p><longTitle>${p(d.longTitle[language])}</longTitle></preface><preamble>${preamble}<formula name="enacting">${p(d.formula[language])}</formula></preamble><body>${body}</body></${kind}></akomaNtoso>\n`;
 }
 export async function importXml(xml: string): Promise<Workspace> {
   if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw Error('External declarations are not supported.');
@@ -155,9 +170,19 @@ export async function importXml(xml: string): Promise<Workspace> {
   if (language !== 'en' && language !== 'zh') throw Error('Unsupported XML language.');
   if (node.getAttribute('digest') !== (await digest(workspace)))
     throw Error('Source digest differs.');
+  const version = node.getAttribute('projectionVersion') || '1';
+  if (version !== '1' && version !== '2')
+    throw Error('Unsupported XML projection version. Update the editor.');
   if (
     xml.trim() !==
-    (await exportXml(workspace, language, node.getAttribute('exportedDate') ?? undefined)).trim()
+    (
+      await exportXml(
+        workspace,
+        language,
+        node.getAttribute('exportedDate') ?? undefined,
+        Number(version) as 1 | 2,
+      )
+    ).trim()
   )
     throw Error(
       'XML structure differs from its source project. Open the original project to edit it.',

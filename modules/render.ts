@@ -1,3 +1,4 @@
+import { recitalText } from './front-matter.ts';
 import { definitionRows, definedDocument } from './definitions.ts';
 import { parseRich, referenceRuns } from './rich-text.ts';
 import { alignments } from './text-formatting.ts';
@@ -256,12 +257,6 @@ export async function render(
       : '';
   const preambleIntro = (l: Language) =>
     l === 'en' ? '<span class="small-caps">Whereas</span>—' : '鑑於——';
-  // Recognise an opening supplied in older drafts without modifying their source.
-  const recital = (text: string, l: Language) =>
-    text.replace(
-      l === 'en' ? /^\s*whereas\b\s*(?:[—–:-]+\s*)?/i : /^\s*鑑於\s*(?:[—–：:-]+\s*)?/,
-      '',
-    );
   const enacting = (l: Language) =>
     l === 'en'
       ? document.formula[l]
@@ -274,7 +269,8 @@ export async function render(
   const pre =
     document.preamble.mode === 'paragraph'
       ? paired(
-          (l) => `<p>${preambleIntro(l)} ${fmt(recital(document.preamble.paragraph[l], l), l)}</p>`,
+          (l) =>
+            `<p>${preambleIntro(l)} ${fmt(recitalText(document.preamble.paragraph[l], l), l)}</p>`,
         )
       : document.preamble.mode === 'list'
         ? paired((l) => `<p class="preamble-intro">${preambleIntro(l)}</p>`) +
@@ -282,7 +278,7 @@ export async function render(
             .map((p, i) =>
               paired(
                 (l) =>
-                  `<p><span class="number">${i + 1}.</span>${fmt(i === 0 ? recital(p[l], l) : p[l], l)}</p>`,
+                  `<p><span class="number">${i + 1}.</span>${fmt(i === 0 ? recitalText(p[l], l) : p[l], l)}</p>`,
               ),
             )
             .join('')

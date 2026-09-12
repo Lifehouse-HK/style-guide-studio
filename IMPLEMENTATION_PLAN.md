@@ -96,8 +96,8 @@ No implementation phase is active. Local definition-list work and the requested 
 
 User authorised implementation of all audit follow-ups and push. Preserve deliberate exclusions (enacted relocation/renumbering/splitting/merging, generic XML import and removed structures).
 
-- [~] R1: Reference integrity, PDF print destinations, front-matter validation/projection and failed-save recovery (A1–A6, A13–A14).
-- [ ] R2: Definition/alias and word/front-matter amendment lifecycle; nested definition content; supplemental amendment provisions (A7–A12).
+- [x] R1: Reference integrity, PDF print destinations, front-matter validation/projection and failed-save recovery (A1–A6, A13–A14).
+- [~] R2: Definition/alias and word/front-matter amendment lifecycle; nested definition content; supplemental amendment provisions (A7–A12).
 - [ ] R3: Amendment annotations, search/comparison, publication builder and separate corpus repository (A15–A16, A20).
 - [ ] R4: Linux/browser/PDF CI, format compatibility and bounded accessibility/IME checks; push and deploy (A17–A19).
 
@@ -108,3 +108,5 @@ Routine choices: use right-aligned latest amendment notes linking a full history
 - A1/A4/A13 complete: shared reference and front-matter validation reaches enactment/API builds; missing/draft references are errors and repealed references warnings. Whole-document and definition destinations are available. A6/A14 also corrected: failed provision saves retain dirty state and saved aliases remain selectable offline. Fresh 31-test suite passed (2026-09-12).
 
 - A3 complete: browser printing prepares a separate PDF-link expression and waits for its fonts/images before printing. Focused print URL test and type check passed (2026-09-12).
+
+- A5 complete: XML projection v2 shares preamble opening rules with HTML/PDF; exact version-one XML remains reopenable without rewriting its source. Unknown projection versions fail explicitly. Type check and 6 focused render/print/XML tests passed (2026-09-12).
