@@ -44,4 +44,10 @@ npm run pdf -- /path/to/project.json /path/to/output
 
 See [the architecture contract](docs/fresh-architecture.md), [confirmed requirements and formula](docs/decisions/002-authoring-profile-and-enactment.md), [implementation evidence and qualification gaps](IMPLEMENTATION_PLAN.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
 
-This is a locally verified replacement, not a qualified publishing service. The static API builder is included; no upload, deployment, signing service or publication repository is included. XML schema checks establish syntactic validity, not generic Akoma Ntoso interoperability. PDF cross-file destination behavior and clean Linux font metrics still need qualification. Final typography and the visible amendment-history treatment remain design decisions.
+This is a locally verified replacement, not a qualified publishing service. The static API builder is included; no signing service or publication repository is included. The editor has a separate GitHub Pages deployment workflow. XML schema checks establish syntactic validity, not generic Akoma Ntoso interoperability. PDF cross-file destination behavior and clean Linux font metrics still need qualification. Final typography and the visible amendment-history treatment remain design decisions.
+
+## GitHub Pages deployment
+
+The editor is deployed by `.github/workflows/pages.yml` to `https://lifehouse-hk.github.io/style-guide-studio/`. Pushes affecting application files on `main` run a clean install, type checks, tests and a production build before uploading only `dist/` to Pages. Pull requests run checks without deploying; documentation-only pushes do not redeploy. The workflow can also be dispatched manually.
+
+The Pages build uses `/style-guide-studio/` as its asset base. This deployment hosts the editor only; publication documents and their API still belong to the future corpus repository. Browser recovery remains local to the origin: work saved at localhost is not automatically present on the Pages domain. Use Download/Open project to transfer existing work.
