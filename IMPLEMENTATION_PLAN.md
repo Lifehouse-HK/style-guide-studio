@@ -57,3 +57,10 @@ No implementation phase is active. Next ready action is user evaluation of the r
 
 - [x] F5: Track the supplied original stacked PNG and embed it above the titles in proofs, portable HTML and PDF output. One logo serves both language columns; no repeated page header. The pure renderer takes an injected image, while the editor/CLI load the repository asset.
 - Byte-for-byte comparison with the supplied PNG passed. Type check/build and 19 tests passed. Browser proof loaded the embedded PNG successfully. Actual English and parallel PDF first pages were rendered and visually inspected; `pdfimages -list` confirms the logo and its transparency mask occur on page 1 only. No Dropbox dependency remains in generated files.
+
+## API-based amendment creation — 2026-09-12
+
+- [x] F6: Replace local-file prerequisite with an API URL workflow. Discover Guides, fetch the selected Guide’s enacted timeline, resolve current text automatically, and pin the exact source/provenance in the draft. Add the static API contract/builder for the future publication repository.
+- Fresh type check, production build and all 23 tests passed. API tests cover same-year sequencing, future dates, whole repeal, unavailable endpoints, missing predecessors and source hash mismatch.
+- Actual cross-origin browser flow passed using a local static JSON fixture server: no file upload, two earlier amendments already present in the proposed proof, a future amendment excluded, source/provenance saved, offline replay possible, and a failed API fetch leaves the prior project intact. The rendered revised proof was inspected. The existing authoring/action browser workflow also passed with API creation replacing file loading.
+- `npm run api -- work/api-cli http://127.0.0.1:9999/ work/fresh-check/source.json` produced the expected static index, source and reference files. The URL is a synthetic build target, not a deployed service. The future corpus repository still needs to publish these endpoints with CORS; no live API deployment is claimed.

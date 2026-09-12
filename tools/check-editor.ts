@@ -1,3 +1,5 @@
+import { serveAPI } from '../tests/publication-fixture.ts';
+import { buildPublicationAPI } from '../modules/publication-api.ts';
 import puppeteer from 'puppeteer';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -10,6 +12,8 @@ const source = enact(specimen(), {
   authority: 'Synthetic authority',
 });
 await writeFile('work/fresh-check/source.json', serialize(source));
+const api = await serveAPI();
+Object.assign(api.files, await buildPublicationAPI([source], [], api.baseURL));
 const browser = await puppeteer.launch();
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 1000 });
@@ -103,11 +107,16 @@ try {
   assert.match(content, /Use clear language/);
   assert.match(content, /使用清晰/); // switch below explicitly for bilingual proof
   await page.screenshot({ path: 'work/fresh-check/editor-proof.png', fullPage: true });
-  await click('Open');
-  const file = await page.$('input[type=file]');
-  await file!.uploadFile(process.cwd() + '/work/fresh-check/source.json');
-  await page.waitForFunction(() => document.body.textContent?.includes('ENACTED · 已制定'));
   await click('Create amendment');
+  await field('Publication API base URL', api.baseURL);
+  await click('Load Guides');
+  await page.waitForSelector('select');
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('button')].some(
+      (b) => b.textContent?.trim() === 'Create amendment draft',
+    ),
+  );
+  await click('Create amendment draft');
   await page.waitForFunction(() => document.body.textContent?.includes('Exact source loaded.'));
   await click('Add action');
   await field('Operation', 'repeal-guide');
@@ -125,4 +134,5 @@ try {
   );
 } finally {
   await browser.close();
+  await api.close();
 }

@@ -41,3 +41,7 @@ The static browser application requires no server account. Save/Discard applies 
 The fixed text form uses a restricted ProseMirror control with paragraphs, text and the four supported inline marks. Paragraph alignment is visible while editing. Formatting is displayed directly in this field; the publication proof remains read-only. The adapter maps source newline offsets to editor selections, preserves selections across toolbar operations and supplies local Undo/Redo. Clipboard HTML is reduced to plain text. The independent document/render modules do not depend on the editing library.
 
 Formatting changes, typing and plain-text paste serialize the edited language to restricted HTML. The other language and untouched/enacted documents are not silently migrated. Amendment text replacement searches decoded visible characters, retains surrounding marks and escapes its replacement. The editor control’s positions refer to displayed characters, independent of encoded HTML length.
+
+## API-based amendment creation
+
+The 2026-09-12 URL workflow supersedes local-file assembly as the way to create amendments. `modules/publication-api.ts` loads the selected principal’s complete enacted timeline from static JSON endpoints, verifies snapshot fingerprints, and resolves today’s effective text. The draft pins this source and API provenance. Source files are fetched automatically; a writer supplies the base URL and selects a Guide. Local revision inspection remains available, but has no draft-creation command. See [the API contract](publication-api.md).

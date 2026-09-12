@@ -1,3 +1,4 @@
+import { ApiAmendmentDialog } from './api-amendment.tsx';
 import publicationLogo from '../assets/branding/lifehouse-hong-kong-stacked.png?inline';
 import { richPlain } from '../modules/rich-text.ts';
 import { exportXml, importXml } from '../modules/xml.ts';
@@ -157,15 +158,11 @@ function App() {
     setError('');
     setNotice('Project opened.');
   }
-  async function openFile(file: File, asSource = false) {
+  async function openFile(file: File) {
     try {
       const text = await file.text();
       const data = text.trimStart().startsWith('<') ? await importXml(text) : parseFile(text);
-      if (asSource) {
-        if (data.document.type !== 'guide' || data.document.stage !== 'enacted')
-          throw Error('Choose an enacted Guide source.');
-        commit({ ...workspace, source: data.document }, 'Source loaded.');
-      } else replace(data);
+      replace(data);
     } catch (e) {
       report(e);
     }
@@ -329,25 +326,14 @@ function App() {
           Proof
         </button>
         <div className="spacer" />
-        {doc.type === 'guide' && !editable && (
-          <button
-            onClick={() => {
-              if (canLeave())
-                newAmendment(doc)
-                  .then((a) => {
-                    commit(
-                      { ...workspace, document: a, source: doc },
-                      'New amendment draft created.',
-                    );
-                    setPage('actions');
-                    setSelected('details');
-                  })
-                  .catch(report);
-            }}
-          >
-            Create amendment
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (canLeave()) setDialog('amendment-api');
+          }}
+        >
+          Create amendment
+        </button>
+
         <button
           onClick={() => {
             if (canLeave()) setDialog('enact');
@@ -497,7 +483,10 @@ function App() {
             revision={revision}
             error={actionError}
             onSave={update}
-            onLoad={(f) => openFile(f, true)}
+            onConnect={() => {
+              if (canLeave()) setDialog('restore-api');
+            }}
+            publication={workspace.publication}
             onError={report}
             onDirty={setPending}
             catalogues={workspace.catalogues}
@@ -576,19 +565,6 @@ function App() {
             onLoad={(instruments) =>
               commit({ ...workspace, instruments }, 'Enacted instruments loaded.')
             }
-            onAmend={async (source) => {
-              try {
-                const amendment = await newAmendment(source);
-                commit(
-                  { ...workspace, document: amendment, source, origin: doc },
-                  'Amendment created against the selected revised text.',
-                );
-                setPage('actions');
-                setSelected('details');
-              } catch (e) {
-                report(e);
-              }
-            }}
             onError={report}
           />
         )}
@@ -674,6 +650,49 @@ function App() {
             : doc.actions.length + ' actions'}
         </span>
       </footer>
+      {(dialog === 'amendment-api' || dialog === 'restore-api') && (
+        <ApiAmendmentDialog
+          initialURL={workspace.publication?.baseURL}
+          requiredGuide={
+            dialog === 'restore-api' && doc.type === 'amendment' ? doc.source.id : undefined
+          }
+          onClose={() => setDialog('')}
+          onCreate={async (resolved) => {
+            if (
+              dialog === 'restore-api' &&
+              doc.type === 'amendment' &&
+              doc.source.digest !== resolved.sourceDigest
+            )
+              throw Error(
+                'The published current text differs from this draft’s original source. Open its complete saved project to retain the pinned source, or create a new amendment against the current text.',
+              );
+            const amendment =
+              dialog === 'restore-api' && doc.type === 'amendment'
+                ? doc
+                : await newAmendment(resolved.source);
+            commit(
+              {
+                format: 'lifehouse-workspace/2',
+                document: amendment,
+                source: resolved.source,
+                origin: resolved.origin,
+                instruments: resolved.instruments,
+                catalogues: resolved.catalogues,
+                publication: {
+                  baseURL: resolved.baseURL,
+                  asOf: resolved.asOf,
+                  manifestDigest: resolved.manifestDigest,
+                  sourceDigest: resolved.sourceDigest,
+                },
+              },
+              'Current revised source resolved from the API; amendment draft ready. Previous workspace is available through Undo.',
+            );
+            setDialog('');
+            setPage('actions');
+            setSelected('details');
+          }}
+        />
+      )}
       {dialog === 'new' && (
         <Dialog title="Create a new principal Guide" onClose={() => setDialog('')}>
           <p>
@@ -810,7 +829,7 @@ function App() {
                   : await enactAmendment(
                       base ??
                         (() => {
-                          throw Error('Load the enacted source in Amending actions first.');
+                          throw Error('Connect to the publication API in Amending actions first.');
                         })(),
                       doc,
                       record,
@@ -1436,7 +1455,8 @@ function ActionWorkspace({
   revision,
   error,
   onSave,
-  onLoad,
+  onConnect,
+  publication,
   onError,
   onDirty,
   catalogues,
@@ -1446,7 +1466,8 @@ function ActionWorkspace({
   revision: Revision | null;
   error: string;
   onSave: (d: Document) => void;
-  onLoad: (f: File) => void;
+  onConnect: () => void;
+  publication?: Workspace['publication'];
   onError: (e: unknown) => void;
   onDirty: (b: boolean) => void;
   catalogues: Catalogue[];
@@ -1487,17 +1508,14 @@ function ActionWorkspace({
       <p>
         Source: <strong>{a.source.titles.en}</strong> · {a.source.titles.zh}
       </p>
+      {publication && (
+        <p className="hint">
+          Publication API: {publication.baseURL} · Source resolved as at {publication.asOf} (Hong
+          Kong). This draft keeps that exact source snapshot.
+        </p>
+      )}
       {!base ? (
-        <Field label="Load the exact enacted source">
-          <input
-            type="file"
-            accept=".json,.xml"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onLoad(f);
-            }}
-          />
-        </Field>
+        <button onClick={onConnect}>Connect to publication API</button>
       ) : (
         <>
           <div className="toolbar">
@@ -2067,7 +2085,7 @@ function AmendmentChecks({ base, amendment: a }: { base?: Guide; amendment: Amen
   const [result, setResult] = useState('Checking…');
   useEffect(() => {
     if (!base) {
-      setResult('Load the enacted source in Amending actions.');
+      setResult('Connect to the publication API in Amending actions.');
       return;
     }
     generate(base, a)
@@ -2205,14 +2223,12 @@ function RevisionWorkspace({
   instruments,
   catalogues,
   onLoad,
-  onAmend,
   onError,
 }: {
   guide: Guide;
   instruments: Amendment[];
   catalogues: Catalogue[];
   onLoad: (a: Amendment[]) => void;
-  onAmend: (g: Guide) => void;
   onError: (e: unknown) => void;
 }) {
   const [date, setDate] = useState(new Date().toLocaleDateString('en-CA')),
@@ -2331,12 +2347,9 @@ function RevisionWorkspace({
             {guide.mode === 'parallel' && <option value="parallel">Parallel</option>}
           </select>
         )}
-        <button
-          disabled={!result || result.repealed || date < (guide.enactment?.effective ?? '')}
-          onClick={() => onAmend(result!.guide)}
-        >
-          Create amendment against this revision
-        </button>
+        <span className="hint">
+          To draft an amendment, use Create amendment and connect to the publication API.
+        </span>
         <span>
           {result?.repealed
             ? 'Whole Guide repealed'
