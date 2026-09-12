@@ -115,7 +115,9 @@ export function resolve(
       : lang === 'en'
         ? `${t!.label.en} of ${/^the\s/i.test(title) ? title : 'the ' + title}`
         : `《${title}》${t!.label.zh}`,
-    href: (pdf ? d.pdf : d.html)[lang] + (target ? '#' + encodeURIComponent(target) : ''),
+    href:
+      (pdf ? d.pdf : d.html)[lang] +
+      (target ? (pdf ? '#nameddest=' : '#') + encodeURIComponent(target) : ''),
     ...(d.status === 'draft'
       ? { warning: 'Draft target — not in effect' }
       : d.status === 'repealed' || t?.repealed

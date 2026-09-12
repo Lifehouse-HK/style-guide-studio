@@ -42,7 +42,10 @@ test('publication builds original, revised, history, amendment and PDF destinati
   assert.doesNotMatch(build.files[base.id + '/original/en.html'], /class="status">REPEALED/);
   assert.match(build.files[base.id + '/versions/2027-01-01/en.html'], /history-0/);
   assert.ok(build.files[a.id + '/en.html']);
-  assert.match(build.pdfPages[base.id + '/en.pdf'], new RegExp(a.id + '/en.pdf#clause-3'));
+  assert.match(
+    build.pdfPages[base.id + '/en.pdf'],
+    new RegExp(a.id + '/en.pdf#nameddest=clause-3'),
+  );
   const catalogue = JSON.parse(build.files['references.json']);
   assert.equal(catalogue.documents.length, 2);
   assert.equal(catalogue.documents.find((d: any) => d.id === base.id).status, 'repealed');
