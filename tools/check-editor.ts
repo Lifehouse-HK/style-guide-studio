@@ -1,6 +1,6 @@
 import { serveAPI } from '../tests/publication-fixture.ts';
 import { buildPublicationAPI } from '../modules/publication-api.ts';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from './browser.ts';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { specimen } from '../tests/fixtures.ts';
@@ -14,7 +14,7 @@ const source = enact(specimen(), {
 await writeFile('work/fresh-check/source.json', serialize(source));
 const api = await serveAPI();
 Object.assign(api.files, await buildPublicationAPI([source], [], api.baseURL));
-const browser = await puppeteer.launch();
+const browser = await launchBrowser();
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 1000 });
 try {

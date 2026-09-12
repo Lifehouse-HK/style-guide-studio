@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import { launchBrowser } from './browser.ts';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { specimen } from '../tests/fixtures.ts';
@@ -33,7 +33,7 @@ await writeFile(
     catalogues: [publicCatalogue(ext, 'https://example.org/', 'r')],
   }),
 );
-const browser = await puppeteer.launch();
+const browser = await launchBrowser();
 try {
   const page = await browser.newPage(),
     errors: string[] = [];

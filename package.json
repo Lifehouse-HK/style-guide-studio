@@ -11,7 +11,9 @@
     "build": "tsc -p tsconfig.modules.json && vite build",
     "pdf": "tsx tools/pdf.ts",
     "api": "tsx tools/api.ts",
-    "publish:corpus": "tsx tools/publish.ts"
+    "publish:corpus": "tsx tools/publish.ts",
+    "verify:browser": "tsx tools/verify-browser.ts",
+    "verify:pdf": "tsx tools/check-pdf.ts"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.9.12",

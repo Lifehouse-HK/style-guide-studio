@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import { launchBrowser } from './browser.ts';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { specimen } from '../tests/fixtures.ts';
@@ -40,7 +40,7 @@ await writeFile(
   'work/definitions/start.json',
   JSON.stringify({ format: 'lifehouse-workspace/2', document: g, catalogues }),
 );
-const browser = await puppeteer.launch();
+const browser = await launchBrowser();
 try {
   const page = await browser.newPage();
   const errors: string[] = [];

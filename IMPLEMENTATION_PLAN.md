@@ -98,8 +98,8 @@ User authorised implementation of all audit follow-ups and push. Preserve delibe
 
 - [x] R1: Reference integrity, PDF print destinations, front-matter validation/projection and failed-save recovery (A1–A6, A13–A14).
 - [x] R2: Definition/alias and word/front-matter amendment lifecycle; nested definition content; supplemental amendment provisions (A7–A12).
-- [~] R3: Amendment annotations, search/comparison, publication builder and separate corpus repository (A15–A16, A20).
-- [ ] R4: Linux/browser/PDF CI, format compatibility and bounded accessibility/IME checks; push and deploy (A17–A19).
+- [x] R3: Amendment annotations, search/comparison, publication builder and separate corpus repository (A15–A16, A20).
+- [~] R4: Linux/browser/PDF CI, format compatibility and bounded accessibility/IME checks; push and deploy (A17–A19).
 
 Routine choices: use right-aligned latest amendment notes linking a full history, deterministic source-profile version compatibility, free serif font fallbacks on Linux, and a separate `church-publication-guides` corpus repository. Actual team enactments are not invented; an empty corpus can be deployed until genuine enacted documents are supplied.
 
@@ -114,3 +114,6 @@ Routine choices: use right-aligned latest amendment notes linking a full history
 - A7–A12 implemented: individual definition and document-name lifecycle, structured definition branches/tables, word insertion/omission, front-matter amendments and standalone supplemental sections/Schedules. Type check and 5 focused extended-amendment tests passed; earlier full 37-test suite passed. Actual browser authoring of nested definition insertion, defined-name insertion and supplemental section passed; paired amendment XML validated against OASIS.
 
 - A15/A20 implemented: latest per-provision notes link to complete amendment history and authorities; whole-document search and a dedicated before/after comparison are available. A16 engine/adapter implemented: complete static publication tree, all PDF variants, dated views, immutable API snapshots and atomic output. Six focused API/publication tests passed (2026-09-12); separate corpus repository and deployment follow.
+
+- R3 complete locally: separate `church-publication-guides` repository source/configuration prepared with an empty corpus and a pinned-engine workflow. The real publication CLI built a local-only two-instrument fixture into 22 static files and 15 PDFs; the real empty corpus built four files and no invented enactments. Push/deployment are R4.
+- R4 local evidence (2026-09-12): 40 tests, type check, production build and five browser stories passed. Additional Chromium Chinese composition/Tab smoke passed. Actual EN/ZH/parallel PDFs passed named-destination, PDF URL, tag, orientation and 70-row content checks (4/4/6 pages); parallel first-page layout visually inspected. Linux CI and live deployments remain pending.

@@ -20,17 +20,34 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
           cache: npm
+      - name: Install free publication fonts and verification tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-liberation fonts-noto-cjk poppler-utils python3-venv libxml2-utils
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - run: npm run verify:browser
+      - run: npm run verify:pdf
+      - name: Check actual PDF destinations and render QA pages
+        run: |
+          python3 -m venv work/qa-python
+          work/qa-python/bin/pip install pypdf==6.10.0
+          work/qa-python/bin/python tools/check-pdf.py
+          pdftoppm -f 1 -singlefile -scale-to 1400 -png work/pdf-check/en.pdf work/pdf-check/en-page1
+          pdftoppm -f 1 -singlefile -scale-to 1400 -png work/pdf-check/parallel.pdf work/pdf-check/parallel-page1
+      - name: Retain actual publication QA artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: publication-qa
+          path: work/pdf-check
       - name: Build for the GitHub Pages project path
         run: npm run build -- --base=/style-guide-studio/
       - name: Upload static editor

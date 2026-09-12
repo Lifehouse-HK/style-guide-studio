@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import { launchBrowser } from './browser.ts';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { serveFixture } from '../tests/publication-fixture.ts';
@@ -7,7 +7,7 @@ import { parseFile } from '../modules/project.ts';
 import { proposed } from '../modules/amendments.ts';
 import type { Publication } from '../modules/publication-api.ts';
 const api = await serveFixture(),
-  browser = await puppeteer.launch();
+  browser = await launchBrowser();
 try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 950 });

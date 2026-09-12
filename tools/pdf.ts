@@ -1,6 +1,6 @@
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from './browser.ts';
 import { parseFile } from '../modules/project.ts';
 import { render, type Layout } from '../modules/render.ts';
 const [input, output, sourceFile] = process.argv.slice(2);
@@ -16,7 +16,7 @@ const logo =
   (
     await readFile(new URL('../assets/branding/lifehouse-hong-kong-stacked.png', import.meta.url))
   ).toString('base64');
-const browser = await puppeteer.launch();
+const browser = await launchBrowser();
 try {
   for (const layout of (doc.mode === 'parallel'
     ? ['en', 'zh', 'parallel']

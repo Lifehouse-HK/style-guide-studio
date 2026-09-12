@@ -1,7 +1,7 @@
 import { readFile, mkdir, writeFile, rename, rm, access } from 'node:fs/promises';
 import { resolve, dirname, join, relative } from 'node:path';
 import { z } from 'zod';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from './browser.ts';
 import { buildPublication } from '../modules/publication.ts';
 import { parseFile } from '../modules/project.ts';
 const [configPath, outputPath] = process.argv.slice(2);
@@ -53,7 +53,7 @@ try {
     await writeFile(target, text);
   }
   if (Object.keys(build.pdfPages).length) {
-    const browser = await puppeteer.launch({ args: process.env.CI ? ['--no-sandbox'] : [] });
+    const browser = await launchBrowser();
     try {
       for (const [path, html] of Object.entries(build.pdfPages)) {
         const page = await browser.newPage();

@@ -1,5 +1,5 @@
 import { recoveryKey } from '../editor/storage.ts';
-import puppeteer from 'puppeteer';
+import { launchBrowser } from './browser.ts';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { specimen } from '../tests/fixtures.ts';
@@ -20,7 +20,7 @@ g.nodes[0].children[0].children = [sub];
 g.nodes[0].children[0].heading = pair();
 await mkdir('work/feedback', { recursive: true });
 await writeFile('work/feedback/source.json', JSON.stringify(g));
-const browser = await puppeteer.launch();
+const browser = await launchBrowser();
 try {
   const page = await browser.newPage();
   page.on('dialog', async (d) => {
@@ -84,9 +84,9 @@ try {
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Enter');
   assert.equal(await page.$$eval(field + ' p', (ps) => ps.length), 4);
-  await page.keyboard.down('Meta');
+  await page.keyboard.down(process.platform === 'darwin' ? 'Meta' : 'Control');
   await page.keyboard.press('z');
-  await page.keyboard.up('Meta');
+  await page.keyboard.up(process.platform === 'darwin' ? 'Meta' : 'Control');
   await page.waitForFunction(
     () =>
       document.querySelector('[role="textbox"][aria-label="English text"]')!.children.length === 3,
@@ -106,9 +106,9 @@ try {
   });
   assert.equal(await page.$eval(field, (el) => el.querySelector('b')), null);
   assert.match(await page.$eval(field, (el) => el.textContent!), /<b>literal<\/b>/);
-  await page.keyboard.down('Meta');
+  await page.keyboard.down(process.platform === 'darwin' ? 'Meta' : 'Control');
   await page.keyboard.press('z');
-  await page.keyboard.up('Meta');
+  await page.keyboard.up(process.platform === 'darwin' ? 'Meta' : 'Control');
   await page.waitForFunction(() =>
     document
       .querySelector('[role="textbox"][aria-label="English text"]')!
@@ -144,6 +144,24 @@ try {
   assert.match(await page.$eval(field, (el) => el.textContent!), /\*literal\* < & &lt;/);
   assert.equal(await page.$eval(field + ' p:last-child', (el) => el.querySelector('em')), null);
   await page.screenshot({ path: 'work/feedback/aligned-input.png' });
+  // Exercise Chromium's composition path, then navigate out using the keyboard.
+  // This verifies editor event handling, not a particular operating-system IME.
+  const chinese = '[role="textbox"][aria-label="繁體中文文本"]';
+  const chineseBox = await page.$(chinese);
+  if (!chineseBox) throw Error('Missing labelled Chinese text editor');
+  await chineseBox.focus();
+  await page.keyboard.press('End');
+  const cdp = await page.createCDPSession();
+  await cdp.send('Input.imeSetComposition', {
+    text: '神的話語',
+    selectionStart: 4,
+    selectionEnd: 4,
+  });
+  await cdp.send('Input.insertText', { text: '神的話語' });
+  await page.keyboard.press('Tab');
+  assert.match(await page.$eval(chinese, (el) => el.textContent!), /神的話語/);
+  assert.equal(await page.$eval(chinese, (el) => el.contains(document.activeElement)), false);
+  await cdp.detach();
   await click('Save provision');
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), recoveryKey);
   const savedBlock = saved.document.nodes[0].children[0].children[0].blocks[0];
