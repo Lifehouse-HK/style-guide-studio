@@ -6,6 +6,15 @@ export const workspaceSchema = z
   .object({
     format: z.literal('lifehouse-workspace/2'),
     document: z.union([guideSchema, amendmentSchema]),
+    publication: z
+      .object({
+        baseURL: z.string().url(),
+        asOf: z.string(),
+        manifestDigest: z.string(),
+        sourceDigest: z.string(),
+      })
+      .strict()
+      .optional(),
     source: guideSchema.optional(),
     origin: guideSchema.optional(),
     instruments: z.array(amendmentSchema).optional(),

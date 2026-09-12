@@ -9,7 +9,8 @@
     "check": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "build": "tsc -p tsconfig.modules.json && vite build",
-    "pdf": "tsx tools/pdf.ts"
+    "pdf": "tsx tools/pdf.ts",
+    "api": "tsx tools/api.ts"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.9.12",
