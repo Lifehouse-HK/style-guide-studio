@@ -46,3 +46,9 @@ No implementation phase is active. Next ready action is user evaluation of the r
 
 - [x] F3: Replace the plain textarea with a restricted paragraph-aware text box. Selected paragraph alignment is visible immediately, with stable source offsets, plain-text paste and field-local Undo/Redo. The fixed form workflow is unchanged.
 - Fresh type check, 17 tests and production build passed. Browser stories cover bilingual typing, visible left/centre/left paragraph styles, Enter/Undo, and matching proof output; the aligned input screenshot was inspected. The larger browser bundle now triggers Vite’s advisory size warning (about 213 kB gzip); no build failure. Actual OS-level Chinese IME qualification is not claimed by scripted typing checks.
+
+## Visible inline formatting and HTML source — 2026-09-12
+
+- [x] F4: Bold/italic/underline/literal buttons and keyboard shortcuts apply visible marks. Newly edited block languages use restricted HTML, with escaped literal characters and no Markdown interpretation. Legacy sources retain their existing semantics until edited; enactment snapshots are not rewritten.
+- Source validation rejects unsupported HTML; renderer/editor decode entities once; text-replacement amendments match visible text and preserve formatting. The XML projection uses native b/i/u and span elements.
+- Fresh 19-test suite, type check and build passed. Browser verification confirms visible nested bold/italic, literal asterisks/angle brackets/ampersands, escaped HTML in saved recovery data, paragraph alignment and matching proof. Principal/amendment specimens with rich text passed the OASIS XML schema.

@@ -1,3 +1,4 @@
+import { parseRich } from './rich-text.ts';
 import { alignments } from './text-formatting.ts';
 import {
   address,
@@ -55,6 +56,27 @@ export function inline(
   }
   return out + escape(text.slice(at)).replaceAll('\n', '<br>');
 }
+export function richInline(
+  text: string,
+  g: Guide,
+  lang: Language,
+  catalogues: Catalogue[] = [],
+  pdf = false,
+): string {
+  return parseRich(text)
+    .map((run) => {
+      let content = escape(run.text);
+      if (!run.marks.includes('code'))
+        content = content.replace(/\[\[([^\]]+)\]\]/g, (_, key) => {
+          const r = resolve(key.replaceAll('&amp;', '&'), g, lang, catalogues, pdf);
+          return r.href
+            ? `<a href="${escape(r.href)}">${escape(r.label)}</a>`
+            : `<span class="warning">${escape(r.label)}</span>`;
+        });
+      return run.marks.reduceRight((html, mark) => `<${mark}>${html}</${mark}>`, content);
+    })
+    .join('');
+}
 export type RenderOptions = {
   layout: Layout;
   catalogues?: Catalogue[];
@@ -93,7 +115,7 @@ export async function render(
       .split('\n')
       .map(
         (text, i) =>
-          `<p style="text-align:${alignment[i]}"${b.type === 'note' ? ' class="note"' : ''}>${i === 0 ? prefix : ''}${fmt(text, l) || '<br>'}</p>`,
+          `<p style="text-align:${alignment[i]}"${b.type === 'note' ? ' class="note"' : ''}>${i === 0 ? prefix : ''}${(b.textFormat?.[l] === 'html' ? richInline(text, g, l, options.catalogues, options.pdf) : fmt(text, l)) || '<br>'}</p>`,
       )
       .join('');
   };

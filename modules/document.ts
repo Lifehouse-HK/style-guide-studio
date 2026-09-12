@@ -1,3 +1,4 @@
+import { richPlain } from './rich-text.ts';
 import { z } from 'zod';
 
 export type Language = 'en' | 'zh';
@@ -45,6 +46,7 @@ export type TextBlock = {
   type: 'text' | 'quote' | 'note';
   text: Pair;
   align?: Partial<Record<Language, 'left' | 'center' | 'right'>>;
+  textFormat?: Partial<Record<Language, 'html'>>;
   paragraphAlign?: Partial<Record<Language, ('left' | 'center' | 'right')[]>>;
 };
 export type Table = {
@@ -71,6 +73,10 @@ const blockSchema = z.union([
       id: z.string().min(1),
       type: z.enum(['text', 'quote', 'note']),
       text: paired,
+      textFormat: z
+        .object({ en: z.literal('html').optional(), zh: z.literal('html').optional() })
+        .strict()
+        .optional(),
       paragraphAlign: z
         .object({
           en: z.array(z.enum(['left', 'center', 'right'])).optional(),
@@ -86,7 +92,16 @@ const blockSchema = z.union([
         .strict()
         .optional(),
     })
-    .strict(),
+    .strict()
+    .superRefine((b, ctx) => {
+      for (const l of ['en', 'zh'] as const)
+        if (b.textFormat?.[l] === 'html')
+          try {
+            for (const line of b.text[l].split('\n')) richPlain(line);
+          } catch {
+            ctx.addIssue({ code: 'custom', message: 'Invalid restricted HTML in ' + l + ' text.' });
+          }
+    }),
   z
     .object({
       id: z.string().min(1),
@@ -369,7 +384,10 @@ export function issues(g: Guide): Issue[] {
         if (!isGroup(n.kind) && !n.children.length && !n.blocks?.length)
           add(n.id, 'empty', 'Add text, a table or child provisions.');
         for (const b of n.blocks ?? [])
-          if (b.type !== 'table' && !b.text[l].trim())
+          if (
+            b.type !== 'table' &&
+            !(b.textFormat?.[l] === 'html' ? richPlain(b.text[l]) : b.text[l]).trim()
+          )
             add(
               n.id,
               'translation',

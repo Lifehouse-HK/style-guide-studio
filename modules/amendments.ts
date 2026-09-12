@@ -1,3 +1,4 @@
+import { richPlain, replaceRich } from './rich-text.ts';
 import { editText } from './text-formatting.ts';
 import { z } from 'zod';
 import {
@@ -220,7 +221,10 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
       const b = n.blocks?.find((b) => b.id === a.block);
       if (!b || b.type === 'table' || !a.language || !a.find)
         throw Error('Choose a text block, language and exact text.');
-      const text = b.text[a.language],
+      const text =
+          b.textFormat?.[a.language] === 'html'
+            ? richPlain(b.text[a.language])
+            : b.text[a.language],
         at = text.indexOf(a.find);
       if (at < 0 || text.indexOf(a.find, at + a.find.length) >= 0)
         throw Error(
@@ -240,7 +244,9 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
         editText(
           b,
           a.language,
-          text.slice(0, at) + (a.replacement ?? '') + text.slice(at + a.find.length),
+          b.textFormat?.[a.language] === 'html'
+            ? replaceRich(b.text[a.language], a.find, a.replacement ?? '')
+            : text.slice(0, at) + (a.replacement ?? '') + text.slice(at + a.find.length),
         ),
       );
       break;

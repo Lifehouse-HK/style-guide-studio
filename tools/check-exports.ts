@@ -6,6 +6,14 @@ import { newAmendment, addAction } from '../modules/amendments.ts';
 await mkdir('work/fresh-check', { recursive: true });
 const g = specimen(),
   sch = newNode('schedule', '1');
+const opening = g.nodes[0].children[0].blocks![0];
+if (opening.type !== 'table') {
+  opening.textFormat = { en: 'html', zh: 'html' };
+  opening.text = pair(
+    'Use <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <code>*literal*</code>; &lt; &amp; &amp;lt;.',
+    '使用<strong>粗體</strong>、<em>斜體</em>、<u>底線</u>及<code>*字句*</code>；&lt; &amp;。',
+  );
+}
 sch.heading = pair('Terminology', '用語');
 sch.blocks = [
   {

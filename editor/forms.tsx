@@ -1,11 +1,6 @@
+import { richPlain } from '../modules/rich-text.ts';
 import { ParagraphInput, type ParagraphInputHandle } from './paragraph-input.tsx';
-import {
-  alignments,
-  alignSelection,
-  editText,
-  paragraphRange,
-  type Alignment,
-} from '../modules/text-formatting.ts';
+import { alignments, paragraphRange, type Alignment } from '../modules/text-formatting.ts';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   allowed,
@@ -227,8 +222,9 @@ function TextField({
   catalogues,
   lang,
   align,
-  onAlign,
+  html,
 }: {
+  html?: boolean;
   label: string;
   value: string;
   onChange: (s: string, align?: Alignment[]) => void;
@@ -236,31 +232,43 @@ function TextField({
   catalogues: Catalogue[];
   lang: 'en' | 'zh';
   align: Alignment[];
-  onAlign: (value: Alignment, start: number, end: number) => void;
 }) {
   const ref = useRef<ParagraphInputHandle>(null),
     [selection, setSelection] = useState<[number, number]>([0, 0]),
     [picker, setPicker] = useState(false),
     [key, setKey] = useState('');
-  function put(before: string, after = '') {
-    const ta = ref.current!;
-    const [a, b] = ta.selection();
-    onChange(value.slice(0, a) + before + value.slice(a, b) + after + value.slice(b));
-    requestAnimationFrame(() => {
-      ta.select(a + before.length, b + before.length);
-    });
+  function put(text: string) {
+    ref.current!.insert(text);
   }
   return (
     <div className="text-field">
       <div className="text-tools">
         <strong>{label}</strong>
-        <button type="button" aria-label="Bold" onClick={() => put('**', '**')}>
+        <button
+          type="button"
+          aria-label="Bold"
+          aria-pressed={ref.current?.active('strong') ?? false}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => ref.current!.toggle('strong')}
+        >
           <Icon name="type-bold" />
         </button>
-        <button type="button" aria-label="Italic" onClick={() => put('*', '*')}>
+        <button
+          type="button"
+          aria-label="Italic"
+          aria-pressed={ref.current?.active('em') ?? false}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => ref.current!.toggle('em')}
+        >
           <Icon name="type-italic" />
         </button>
-        <button type="button" aria-label="Underline" onClick={() => put('__', '__')}>
+        <button
+          type="button"
+          aria-label="Underline"
+          aria-pressed={ref.current?.active('u') ?? false}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => ref.current!.toggle('u')}
+        >
           <Icon name="type-underline" />
         </button>
         {(['left', 'center', 'right'] as const).map((option) => (
@@ -269,18 +277,11 @@ function TextField({
             type="button"
             aria-label={`Align ${option}`}
             aria-pressed={(() => {
-              const [a, b] = paragraphRange(value, ...selection);
+              const [a, b] = paragraphRange(html ? richPlain(value) : value, ...selection);
               return align.slice(a, b + 1).every((v) => v === option);
             })()}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              const ta = ref.current!;
-              const [start, end] = ta.selection();
-              onAlign(option, start, end);
-              requestAnimationFrame(() => {
-                ta.select(start, end);
-              });
-            }}
+            onClick={() => ref.current!.align(option)}
           >
             <Icon name={`text-${option}`} />
           </button>
@@ -302,7 +303,13 @@ function TextField({
             {char}
           </button>
         ))}
-        <button type="button" aria-label="Literal text" onClick={() => put('`', '`')}>
+        <button
+          type="button"
+          aria-label="Literal text"
+          aria-pressed={ref.current?.active('code') ?? false}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => ref.current!.toggle('code')}
+        >
           <Icon name="code" />
         </button>
         <button type="button" onClick={() => setPicker(!picker)}>
@@ -352,6 +359,7 @@ function TextField({
       <ParagraphInput
         ref={ref}
         label={label}
+        html={html}
         value={value}
         align={align}
         onSelection={setSelection}
@@ -496,19 +504,17 @@ export function NodeFields({
                     key={b.id + l}
                     label={l === 'en' ? 'English text' : '繁體中文文本'}
                     value={b.text[l]}
+                    html={b.textFormat?.[l] === 'html'}
                     lang={l}
                     align={alignments(b, l)}
-                    onAlign={(align, start, end) =>
-                      updateBlock(alignSelection(b, l, start, end, align))
+                    onChange={(text, align) =>
+                      updateBlock({
+                        ...b,
+                        text: { ...b.text, [l]: text },
+                        textFormat: { ...b.textFormat, [l]: 'html' },
+                        paragraphAlign: { ...b.paragraphAlign, [l]: align ?? alignments(b, l) },
+                      })
                     }
-                    onChange={(text, align) => {
-                      const next = editText(b, l, text);
-                      updateBlock(
-                        align
-                          ? { ...next, paragraphAlign: { ...next.paragraphAlign, [l]: align } }
-                          : next,
-                      );
-                    }}
                     guide={guide}
                     catalogues={catalogues}
                   />

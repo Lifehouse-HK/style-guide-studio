@@ -1,3 +1,4 @@
+import { recoveryKey } from '../editor/storage.ts';
 import puppeteer from 'puppeteer';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -113,8 +114,42 @@ try {
       .querySelector('[role="textbox"][aria-label="English text"]')!
       .textContent!.includes('Second paragraph'),
   );
+  await page.$eval(field, (el) => {
+    const node = el.children[1].firstChild!;
+    (el as HTMLElement).focus();
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  await page.click('button[aria-label="Bold"]');
+  await page.waitForSelector(field + ' strong');
+  assert.equal(await page.$eval(field + ' strong', (el) => el.textContent), 'Second paragraph');
+  assert.ok(
+    Number(await page.$eval(field + ' strong', (el) => getComputedStyle(el).fontWeight)) >= 600,
+  );
+  await page.click('button[aria-label="Italic"]');
+  assert.ok(await page.$(field + ' strong em, ' + field + ' em strong'));
+  await page.$eval(field, (el) => {
+    (el as HTMLElement).focus();
+    const range = document.createRange();
+    range.selectNodeContents(el.children[2]);
+    range.collapse(false);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  await page.keyboard.type(' *literal* < & &lt;');
+  assert.match(await page.$eval(field, (el) => el.textContent!), /\*literal\* < & &lt;/);
+  assert.equal(await page.$eval(field + ' p:last-child', (el) => el.querySelector('em')), null);
   await page.screenshot({ path: 'work/feedback/aligned-input.png' });
   await click('Save provision');
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), recoveryKey);
+  const savedBlock = saved.document.nodes[0].children[0].children[0].blocks[0];
+  assert.equal(savedBlock.textFormat.en, 'html');
+  assert.match(savedBlock.text.en, /<strong><em>Second paragraph<\/em><\/strong>/);
+  assert.match(savedBlock.text.en, /\*literal\* &lt; &amp; &amp;lt;/);
   await page.click('.breadcrumb button:nth-of-type(1)');
   await click('Proof');
   assert.ok(await page.$('[aria-label="Proof language"]'));

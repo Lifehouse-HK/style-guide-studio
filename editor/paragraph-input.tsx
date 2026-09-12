@@ -1,14 +1,21 @@
+import { parseRich, serializeRich, legacyRuns, type Mark } from '../modules/rich-text.ts';
 import { useEffect, useLayoutEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Schema, Slice, type Node as DocNode } from 'prosemirror-model';
 import { EditorState, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { baseKeymap } from 'prosemirror-commands';
+import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { keymap } from 'prosemirror-keymap';
 import { history, undo, redo } from 'prosemirror-history';
 import type { Alignment } from '../modules/text-formatting.ts';
 import 'prosemirror-view/style/prosemirror.css';
 
 const schema = new Schema({
+  marks: Object.fromEntries(
+    (['strong', 'em', 'u', 'code'] as const).map((tag) => [
+      tag,
+      { toDOM: () => [tag, 0], parseDOM: [{ tag }] },
+    ]),
+  ),
   nodes: {
     doc: { content: 'paragraph+' },
     paragraph: {
@@ -23,26 +30,35 @@ const schema = new Schema({
     text: { group: 'inline' },
   },
 });
-function makeDoc(value: string, align: Alignment[]) {
+function makeDoc(value: string, align: Alignment[], html = false) {
   return schema.node(
     'doc',
     null,
-    value
-      .split('\n')
-      .map((text, i) =>
-        schema.node(
-          'paragraph',
-          { align: align[i] ?? 'left' },
-          text ? schema.text(text) : undefined,
-        ),
+    value.split('\n').map((line, i) =>
+      schema.node(
+        'paragraph',
+        { align: align[i] ?? 'left' },
+        (html ? parseRich(line) : legacyRuns(line))
+          .filter((r) => r.text)
+          .map((r) =>
+            schema.text(
+              r.text,
+              r.marks.map((m) => schema.marks[m].create()),
+            ),
+          ),
       ),
+    ),
   );
 }
 function read(doc: DocNode) {
   const lines: string[] = [],
     align: Alignment[] = [];
   doc.forEach((p) => {
-    lines.push(p.textContent);
+    const runs: { text: string; marks: Mark[] }[] = [];
+    p.forEach((n) =>
+      runs.push({ text: n.text ?? '', marks: n.marks.map((m) => m.type.name as Mark) }),
+    );
+    lines.push(serializeRich(runs));
     align.push(p.attrs.align);
   });
   return { value: lines.join('\n'), align };
@@ -73,13 +89,18 @@ function toPosition(doc: DocNode, offset: number) {
   return result;
 }
 export type ParagraphInputHandle = {
+  insert: (text: string) => void;
+  toggle: (mark: Mark) => void;
+  active: (mark: Mark) => boolean;
+  align: (alignment: Alignment) => void;
   selection: () => [number, number];
   select: (start: number, end: number) => void;
 };
-/** A plain-text source field with paragraph alignment, not a page-layout editor. */
+/** Restricted inline formatting and paragraph alignment within the fixed editing form. */
 export const ParagraphInput = forwardRef<
   ParagraphInputHandle,
   {
+    html?: boolean;
     label: string;
     value: string;
     align: Alignment[];
@@ -95,6 +116,38 @@ export const ParagraphInput = forwardRef<
   useImperativeHandle(
     ref,
     () => ({
+      insert: (text) => {
+        const v = view.current;
+        if (!v) return;
+        v.dispatch(v.state.tr.insertText(text));
+        v.focus();
+      },
+      active: (mark) => {
+        const v = view.current;
+        if (!v) return false;
+        const { from, to, empty } = v.state.selection;
+        return empty
+          ? !!schema.marks[mark].isInSet(v.state.storedMarks ?? v.state.selection.$from.marks())
+          : v.state.doc.rangeHasMark(from, to, schema.marks[mark]);
+      },
+      toggle: (mark) => {
+        const v = view.current;
+        if (!v) return;
+        toggleMark(schema.marks[mark])(v.state, v.dispatch, v);
+        v.focus();
+      },
+      align: (alignment) => {
+        const v = view.current;
+        if (!v) return;
+        const { from, to } = v.state.selection;
+        let tr = v.state.tr;
+        v.state.doc.forEach((p, pos) => {
+          if (pos + p.nodeSize - 1 >= from && (from === to ? pos <= to : pos + 1 < to))
+            tr = tr.setNodeMarkup(pos, undefined, { align: alignment });
+        });
+        v.dispatch(tr);
+        v.focus();
+      },
       selection: () => selected.current,
       select: (start, end) => {
         const v = view.current;
@@ -117,10 +170,17 @@ export const ParagraphInput = forwardRef<
     const v = new EditorView(host.current!, {
       state: EditorState.create({
         schema,
-        doc: makeDoc(latest.current.value, latest.current.align),
+        doc: makeDoc(latest.current.value, latest.current.align, latest.current.html),
         plugins: [
           history(),
-          keymap({ 'Mod-z': undo, 'Mod-Shift-z': redo, 'Mod-y': redo }),
+          keymap({
+            'Mod-z': undo,
+            'Mod-Shift-z': redo,
+            'Mod-y': redo,
+            'Mod-b': toggleMark(schema.marks.strong),
+            'Mod-i': toggleMark(schema.marks.em),
+            'Mod-u': toggleMark(schema.marks.u),
+          }),
           keymap(baseKeymap),
         ],
       }),
@@ -136,7 +196,14 @@ export const ParagraphInput = forwardRef<
         const text = event.clipboardData?.getData('text/plain');
         if (text === undefined) return false;
         event.preventDefault();
-        const doc = makeDoc(text.replace(/\r\n?/g, '\n'), []);
+        const doc = schema.node(
+          'doc',
+          null,
+          text
+            .replace(/\r\n?/g, '\n')
+            .split('\n')
+            .map((line) => schema.node('paragraph', null, line ? schema.text(line) : undefined)),
+        );
         view.dispatch(
           view.state.tr.replaceSelection(new Slice(doc.content, 1, 1)).scrollIntoView(),
         );
@@ -165,7 +232,7 @@ export const ParagraphInput = forwardRef<
   useLayoutEffect(() => {
     const v = view.current;
     if (!v) return;
-    const next = makeDoc(props.value, props.align);
+    const next = makeDoc(props.value, props.align, props.html);
     if (v.state.doc.eq(next)) return;
     const [start, end] = selected.current;
     let tr = v.state.tr;
@@ -180,6 +247,6 @@ export const ParagraphInput = forwardRef<
       TextSelection.create(tr.doc, toPosition(tr.doc, start), toPosition(tr.doc, end)),
     );
     v.dispatch(tr.setMeta('controlled', true));
-  }, [props.value, props.align]);
+  }, [props.value, props.align, props.html]);
   return <div ref={host} />;
 });

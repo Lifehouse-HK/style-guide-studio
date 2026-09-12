@@ -1,3 +1,4 @@
+import { parseRich } from './rich-text.ts';
 import { DOMParser } from '@xmldom/xmldom';
 import {
   canonical,
@@ -25,7 +26,24 @@ export async function exportXml(
   const block = (b: Block) =>
     b.type === 'table'
       ? `<table eId="${e(b.id)}"><caption>${e(b.caption[language])}</caption>${b.rows.map((r, i) => `<tr>${r.map((c) => `<${i ? 'td' : 'th'}>${p(c)}</${i ? 'td' : 'th'}>`).join('')}</tr>`).join('')}</table>`
-      : p(b.text[language]);
+      : b.textFormat?.[language] === 'html'
+        ? b.text[language]
+            .split('\n')
+            .map(
+              (line) =>
+                '<p>' +
+                parseRich(line)
+                  .map((run) =>
+                    run.marks.reduceRight((content, mark) => {
+                      const tag = { strong: 'b', em: 'i', u: 'u', code: 'span' }[mark];
+                      return `<${tag}>${content}</${tag}>`;
+                    }, e(run.text)),
+                  )
+                  .join('') +
+                '</p>',
+            )
+            .join('')
+        : p(b.text[language]);
   function node(n: Node, prefix = ''): string {
     const tag =
       (

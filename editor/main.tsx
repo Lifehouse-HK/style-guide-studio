@@ -1,3 +1,4 @@
+import { richPlain } from '../modules/rich-text.ts';
 import { exportXml, importXml } from '../modules/xml.ts';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -1209,7 +1210,9 @@ function NodeEditor({
                         .map((b) =>
                           b.type === 'table'
                             ? b.caption[guide.mode === 'zh' ? 'zh' : 'en']
-                            : b.text[guide.mode === 'zh' ? 'zh' : 'en'],
+                            : b.textFormat?.[guide.mode === 'zh' ? 'zh' : 'en'] === 'html'
+                              ? richPlain(b.text[guide.mode === 'zh' ? 'zh' : 'en'])
+                              : b.text[guide.mode === 'zh' ? 'zh' : 'en'],
                         )
                         .join(' ')
                     ).slice(0, 120) || 'No text yet'}
@@ -1876,7 +1879,14 @@ function ActionForm({
                     {i + 1}.{' '}
                     {b.type === 'table'
                       ? b.caption.en || 'Table'
-                      : b.text.en.slice(0, 70) || b.text.zh.slice(0, 40)}
+                      : (b.textFormat?.en === 'html' ? richPlain(b.text.en) : b.text.en).slice(
+                          0,
+                          70,
+                        ) ||
+                        (b.textFormat?.zh === 'html' ? richPlain(b.text.zh) : b.text.zh).slice(
+                          0,
+                          40,
+                        )}
                   </option>
                 ))}
             </select>
