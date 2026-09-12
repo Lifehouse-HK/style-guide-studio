@@ -1,3 +1,4 @@
+import publicationLogo from '../assets/branding/lifehouse-hong-kong-stacked.png?inline';
 import { richPlain } from '../modules/rich-text.ts';
 import { exportXml, importXml } from '../modules/xml.ts';
 import React, { useEffect, useState } from 'react';
@@ -178,6 +179,7 @@ function App() {
         if (!base) throw Error('Load the principal Guide first.');
         const r = await proposed(base, doc);
         return render(r.guide, {
+          logo: publicationLogo,
           layout: doc.mode === 'parallel' ? layout : doc.mode,
           proposed: true,
           revision: r,
@@ -188,6 +190,7 @@ function App() {
       return render(
         doc,
         {
+          logo: publicationLogo,
           layout: doc.mode === 'parallel' ? layout : doc.mode,
           catalogues: workspace.catalogues,
           iframe: true,
@@ -2221,7 +2224,13 @@ function RevisionWorkspace({
     let live = true;
     revise(guide, instruments, date)
       .then(async (r) => {
-        const html = await render(r.guide, { layout, revision: r, catalogues, iframe: true });
+        const html = await render(r.guide, {
+          logo: publicationLogo,
+          layout,
+          revision: r,
+          catalogues,
+          iframe: true,
+        });
         if (live) {
           setResult(r);
           setHtml(html);

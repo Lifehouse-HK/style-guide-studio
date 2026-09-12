@@ -9,3 +9,5 @@ The application is MIT licensed. Direct dependencies are pinned in `package-lock
 - Times New Roman and Chinese system fonts are not bundled or redistributed. Documents request installed fonts with serif fallbacks. Install an openly licensed Chinese serif font for unattended Linux builds.
 
 The OASIS Akoma Ntoso schema is an external verification reference, not bundled product code. Research links are retained in the drafting audit.
+
+The Lifehouse Hong Kong logo is a supplied church branding asset; see `assets/branding/README.md` for provenance. The software MIT licence does not grant trademark rights.

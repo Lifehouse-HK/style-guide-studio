@@ -28,7 +28,7 @@ npx tsx tools/check-editor.ts
 npm run pdf -- /path/to/project.json /path/to/output
 ```
 
-`dist/` is the static editor. `build/modules/` contains independent JavaScript modules and declarations, without React dependencies. Bilingual PDF export produces `en.pdf`, `zh.pdf` (portrait) and `parallel.pdf` (landscape, aligned provisions and one shared table). Browser Print is also available in Proof. Bilingual proofs offer English, Chinese and parallel views; monolingual proofs use their document language without a selector. Typography and pagination rules are centralised in `modules/render.ts`.
+`dist/` is the static editor. `build/modules/` contains independent JavaScript modules and declarations, without React dependencies. Bilingual PDF export produces `en.pdf`, `zh.pdf` (portrait) and `parallel.pdf` (landscape, aligned provisions and one shared table). Browser Print is also available in Proof. Bilingual proofs offer English, Chinese and parallel views; monolingual proofs use their document language without a selector. The supplied Lifehouse Hong Kong stacked logo appears once above the titles on the first page and is embedded in exports. Its unchanged original is tracked in `assets/branding/`. Typography, logo size and pagination rules are centralised in `modules/render.ts`.
 
 ## Architecture and boundaries
 

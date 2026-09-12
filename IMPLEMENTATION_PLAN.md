@@ -52,3 +52,8 @@ No implementation phase is active. Next ready action is user evaluation of the r
 - [x] F4: Bold/italic/underline/literal buttons and keyboard shortcuts apply visible marks. Newly edited block languages use restricted HTML, with escaped literal characters and no Markdown interpretation. Legacy sources retain their existing semantics until edited; enactment snapshots are not rewritten.
 - Source validation rejects unsupported HTML; renderer/editor decode entities once; text-replacement amendments match visible text and preserve formatting. The XML projection uses native b/i/u and span elements.
 - Fresh 19-test suite, type check and build passed. Browser verification confirms visible nested bold/italic, literal asterisks/angle brackets/ampersands, escaped HTML in saved recovery data, paragraph alignment and matching proof. Principal/amendment specimens with rich text passed the OASIS XML schema.
+
+## Publication logo — 2026-09-12
+
+- [x] F5: Track the supplied original stacked PNG and embed it above the titles in proofs, portable HTML and PDF output. One logo serves both language columns; no repeated page header. The pure renderer takes an injected image, while the editor/CLI load the repository asset.
+- Byte-for-byte comparison with the supplied PNG passed. Type check/build and 19 tests passed. Browser proof loaded the embedded PNG successfully. Actual English and parallel PDF first pages were rendered and visually inspected; `pdfimages -list` confirms the logo and its transparency mask occur on page 1 only. No Dropbox dependency remains in generated files.

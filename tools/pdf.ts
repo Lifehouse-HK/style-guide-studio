@@ -11,16 +11,28 @@ const doc = project.document,
   source = sourceFile ? parseFile(await readFile(sourceFile, 'utf8')).document : project.source;
 if (source && source.type !== 'guide') throw Error('Source must be a principal Guide.');
 await mkdir(output, { recursive: true });
+const logo =
+  'data:image/png;base64,' +
+  (
+    await readFile(new URL('../assets/branding/lifehouse-hong-kong-stacked.png', import.meta.url))
+  ).toString('base64');
 const browser = await puppeteer.launch();
 try {
   for (const layout of (doc.mode === 'parallel'
     ? ['en', 'zh', 'parallel']
     : [doc.mode]) as Layout[]) {
-    const html = await render(doc, { layout, pdf: true, catalogues: project.catalogues }, source);
+    const html = await render(
+      doc,
+      { layout, logo, pdf: true, catalogues: project.catalogues },
+      source,
+    );
     await writeFile(join(output, layout + '.html'), html);
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'load' });
-    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      await Promise.all([...document.images].map((image) => image.decode()));
+    });
     await page.pdf({
       path: resolve(output, layout + '.pdf'),
       preferCSSPageSize: true,
