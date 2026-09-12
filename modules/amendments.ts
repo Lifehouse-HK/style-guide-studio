@@ -147,10 +147,11 @@ export type History = {
   titles: Pair;
   date: string;
   clause: string;
+  subclause?: string;
   target: string;
   action: string;
 };
-export type Revision = { guide: Guide; repealed: boolean; history: History[] };
+export type Revision = { guide: Guide; repealed: boolean; history: History[]; asOf?: string };
 export async function newAmendment(base: Guide): Promise<Amendment> {
   if (base.stage !== 'enacted') throw Error('Open an enacted source Guide first.');
   const { type, nodes, ...common } = newGuide();
@@ -757,6 +758,7 @@ export async function revise(
           titles: a.titles,
           date: a.enactment!.effective,
           clause: op.clause,
+          subclause: op.subclause,
           target: op.target,
           action: op.type,
         })),
@@ -770,5 +772,5 @@ export async function revise(
       instruments: [...(prev.guide.revision?.instruments ?? []), a.id],
     };
   }
-  return state;
+  return { ...state, asOf: date };
 }

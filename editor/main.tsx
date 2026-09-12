@@ -1,3 +1,4 @@
+import { searchGuide, compareGuides } from '../modules/review.ts';
 import { printPublication } from './print.ts';
 import { ApiAmendmentDialog } from './api-amendment.tsx';
 import publicationLogo from '../assets/branding/lifehouse-hong-kong-stacked.png?inline';
@@ -83,7 +84,8 @@ function App() {
     [recovery, setRecovery] = useState(false),
     [layout, setLayout] = useState<Layout>('en'),
     [proof, setProof] = useState(''),
-    [proofKind, setProofKind] = useState('instrument');
+    [proofKind, setProofKind] = useState('instrument'),
+    [query, setQuery] = useState('');
   const doc = workspace.document,
     base = workspace.source,
     editable = doc.stage === 'draft';
@@ -342,6 +344,14 @@ function App() {
         >
           References
         </button>
+        <button className={page === 'search' ? 'active' : ''} onClick={() => navTab('search')}>
+          Search
+        </button>
+        {doc.type === 'amendment' && (
+          <button className={page === 'compare' ? 'active' : ''} onClick={() => navTab('compare')}>
+            Compare changes
+          </button>
+        )}
         <button className={page === 'proof' ? 'active' : ''} onClick={() => navTab('proof')}>
           Proof
         </button>
@@ -522,6 +532,80 @@ function App() {
             onSave={update}
             onDirty={setPending}
           />
+        )}
+        {page === 'search' && (
+          <section className="full">
+            <h1>Search this document</h1>
+            <Field label="Find text">
+              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </Field>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Location</th>
+                  <th>Text</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchGuide(doc.type === 'guide' ? doc : amendmentGuide(doc), query).map((r) => (
+                  <tr key={r.target}>
+                    <td>{r.location}</td>
+                    <td>{r.snippet}</td>
+                    <td>
+                      <button
+                        onClick={() => {
+                          if (r.target === 'references') navTab('references');
+                          else if (
+                            doc.type === 'guide' ||
+                            ['details', 'opening', 'formula'].includes(r.target)
+                          )
+                            navigate(r.target);
+                          else navTab('supplemental');
+                        }}
+                      >
+                        Open
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+        {page === 'compare' && doc.type === 'amendment' && base && revision && (
+          <section className="full">
+            <h1>Before and after this amendment</h1>
+            {revision.repealed && (
+              <p className="warning">The entire principal Guide would be repealed.</p>
+            )}
+            <table className="data-table comparison">
+              <thead>
+                <tr>
+                  <th>Location / change</th>
+                  <th>Before</th>
+                  <th>After (proposed)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compareGuides(base, revision.guide).map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      {r.location}
+                      <br />
+                      {r.status}
+                    </td>
+                    <td>
+                      <pre>{r.before || '—'}</pre>
+                    </td>
+                    <td>
+                      <pre>{r.after || '—'}</pre>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
         )}
         {page === 'checks' && (
           <section className="full">

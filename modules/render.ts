@@ -37,7 +37,7 @@ export const stylesheet = `
 .definition-branches{margin-left:2.3em}.definitions{margin:8px 0 12px}.definition-entry{margin:6px 0 6px 2.3em}.definition-entry p{margin:0}.definition-entry{break-inside:avoid}
 .small-caps{font-variant-caps:small-caps}.preamble-intro{break-after:avoid}
 .document-heading{break-inside:avoid}.publication-logo{display:block;width:44mm;height:auto;max-width:100%;margin:0 auto 5mm}
-@page{size:A4;margin:20mm 18mm;@bottom-center{content:counter(page);font-size:10pt}}*{box-sizing:border-box}body{max-width:900px;margin:30px auto;padding:0 28px;font-family:"Times New Roman","Noto Serif CJK TC","Songti TC",serif;font-size:12pt;line-height:1.55;color:#111}h1{text-align:center;font-size:20pt;line-height:1.3}h2{font-size:15pt;text-align:center;margin:24px 0 12px}h3{font-size:12pt;margin:18px 0 6px}p{margin:6px 0}.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:25px}.pair>*{min-width:0}.children{margin-left:1.7em}.number{display:inline-block;min-width:2.3em;font-weight:normal}.status{border-block:1px solid #555;padding:8px 0;text-align:center;margin:20px 0;font-family:system-ui,sans-serif;font-size:10pt}.clause{margin:12px 0}.group{margin-top:25px}.muted{color:#555}.note{font-size:10pt;border-left:2px solid #bbb;padding-left:10px}blockquote{margin:8px 0 12px 22px;border-left:2px solid #aaa;padding-left:15px}table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11pt;table-layout:fixed}th,td{border:1px solid #777;padding:6px;vertical-align:top;overflow-wrap:anywhere}th{font-weight:bold}caption{text-align:left;font-weight:bold}thead{display:table-header-group}.row-number{width:3em}tr{break-inside:avoid}a{color:#134f80;text-decoration:underline}code{font-family:monospace;font-size:.9em}nav{border-bottom:1px solid #777;padding:12px 0;margin-bottom:24px}nav ul{list-style:none;padding-left:15px}nav a{color:inherit}h2,h3{break-after:avoid}.warning{color:#8c2a15}.parallel{max-width:1400px}.shared{grid-column:1/-1}.history{font-size:10pt;border-top:1px solid #777;margin-top:30px}@media print{body{margin:0;padding:0;max-width:none}a{color:inherit}.status{font-family:serif}.no-print{display:none}}
+@page{size:A4;margin:20mm 18mm;@bottom-center{content:counter(page);font-size:10pt}}*{box-sizing:border-box}body{max-width:900px;margin:30px auto;padding:0 28px;font-family:"Times New Roman","Noto Serif CJK TC","Songti TC",serif;font-size:12pt;line-height:1.55;color:#111}h1{text-align:center;font-size:20pt;line-height:1.3}h2{font-size:15pt;text-align:center;margin:24px 0 12px}h3{font-size:12pt;margin:18px 0 6px}p{margin:6px 0}.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:25px}.pair>*{min-width:0}.children{margin-left:1.7em}.number{display:inline-block;min-width:2.3em;font-weight:normal}.status{border-block:1px solid #555;padding:8px 0;text-align:center;margin:20px 0;font-family:system-ui,sans-serif;font-size:10pt}.clause{margin:12px 0}.group{margin-top:25px}.muted{color:#555}.note{font-size:10pt;border-left:2px solid #bbb;padding-left:10px}blockquote{margin:8px 0 12px 22px;border-left:2px solid #aaa;padding-left:15px}table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11pt;table-layout:fixed}th,td{border:1px solid #777;padding:6px;vertical-align:top;overflow-wrap:anywhere}th{font-weight:bold}caption{text-align:left;font-weight:bold}thead{display:table-header-group}.row-number{width:3em}tr{break-inside:avoid}a{color:#134f80;text-decoration:underline}code{font-family:monospace;font-size:.9em}nav{border-bottom:1px solid #777;padding:12px 0;margin-bottom:24px}nav ul{list-style:none;padding-left:15px}nav a{color:inherit}h2,h3{break-after:avoid}.warning{color:#8c2a15}.parallel{max-width:1400px}.shared{grid-column:1/-1}.amendment-note{text-align:right;font-size:10pt;color:#444}.history{font-size:10pt;border-top:1px solid #777;margin-top:30px}@media print{body{margin:0;padding:0;max-width:none}a{color:inherit}.status{font-family:serif}.no-print{display:none}}
 `;
 export function inline(
   text: string,
@@ -109,12 +109,30 @@ export async function render(
     g = document.type === 'guide' ? document : source;
   if (!g) throw Error('Load the amendment source to generate the proof.');
   let referenceGuide = g;
+  const history = options.history === false ? [] : (options.revision?.history ?? []);
   const esc = escape,
     fmt = (s: string, l: Language) => inline(s, referenceGuide, l, options.catalogues, options.pdf),
     paired = (fn: (l: Language) => string) =>
       layout === 'parallel'
         ? `<div class="pair">${langs.map((l) => `<div lang="${l === 'zh' ? 'zh-Hant' : 'en'}">${fn(l)}</div>`).join('')}</div>`
         : fn(langs[0]);
+  const authority = (h: (typeof history)[number], l: Language) => {
+    const doc = options.catalogues?.flatMap((c) => c.documents).find((d) => d.id === h.instrument);
+    const href = doc
+      ? (options.pdf ? doc.pdf : doc.html)[l] + '#clause-' + encodeURIComponent(h.clause)
+      : undefined;
+    const label = `${h.titles[l]}, ${l === 'en' ? 'section ' : '第'}${h.clause}${h.subclause ? '(' + h.subclause + ')' : ''}${l === 'en' ? '' : '條'}`;
+    return href ? `<a href="${esc(href)}">${esc(label)}</a>` : esc(label);
+  };
+  const amendmentNote = (target: string) => {
+    const events = history.map((h, i) => ({ h, i })).filter(({ h }) => h.target === target);
+    const latest = events.at(-1);
+    if (!latest) return '';
+    return paired(
+      (l) =>
+        `<p class="amendment-note">[${l === 'en' ? (['omit-provision', 'repeal-guide'].includes(latest.h.action) ? 'Repealed by ' : 'Amended by ') : ['omit-provision', 'repeal-guide'].includes(latest.h.action) ? '由以下指引廢除：' : '由以下指引修訂：'}${authority(latest.h, l)} · <a href="#history-${latest.i}">${l === 'en' ? 'History' : '修訂紀錄'} (${events.length})</a>]</p>`,
+    );
+  };
   const table = (b: { caption: Pair; numbered: boolean; rows: string[][] }) =>
     `<table><caption>${layout === 'parallel' ? esc(b.caption.en) + ' / ' + esc(b.caption.zh) : esc(b.caption[langs[0]])}</caption><thead><tr>${b.numbered ? '<th scope="col" class="row-number">#</th>' : ''}${b.rows[0].map((c) => `<th scope="col">${fmt(c, langs[0])}</th>`).join('')}</tr></thead><tbody>${b.rows
       .slice(1)
@@ -206,7 +224,7 @@ export async function render(
           .slice(numbered && first?.type === 'text' ? 1 : 0)
           .map(block)
           .join('');
-    return `<section${quoted ? '' : ` id="${esc(n.id)}"`} class="${isGroup(n.kind) ? 'group' : 'clause'}">${heading}${text}${n.kind === 'appendix' ? paired((l) => `<p class="muted">${l === 'en' ? 'Informative appendix' : '資料性附錄'}</p>`) : ''}<div class="${isGroup(n.kind) || n.kind === 'schedule' || n.kind === 'appendix' ? '' : 'children'}">${n.children.map((c) => node(c, quoted)).join('')}</div>${n.closing ? paired((l) => (n.closing![l] ? `<p>${fmt(n.closing![l], l)}</p>` : '')) : ''}</section>`;
+    return `<section${quoted ? '' : ` id="${esc(n.id)}"`} class="${isGroup(n.kind) ? 'group' : 'clause'}">${heading}${quoted ? '' : amendmentNote(n.id)}${text}${n.kind === 'appendix' ? paired((l) => `<p class="muted">${l === 'en' ? 'Informative appendix' : '資料性附錄'}</p>`) : ''}<div class="${isGroup(n.kind) || n.kind === 'schedule' || n.kind === 'appendix' ? '' : 'children'}">${n.children.map((c) => node(c, quoted)).join('')}</div>${n.closing ? paired((l) => (n.closing![l] ? `<p>${fmt(n.closing![l], l)}</p>` : '')) : ''}</section>`;
   }
   const status = paired((l) =>
     options.proposed
@@ -314,5 +332,5 @@ export async function render(
             )
             .join('')
         : '';
-  return `<!doctype html><html lang="${langs[0] === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="utf-8">${options.iframe ? '<base href="about:srcdoc">' : ''}<title>${esc(document.titles[langs[0]])}</title><style>${stylesheet}${layout === 'parallel' ? '@page{size:A4 landscape}' : ''}</style></head><body class="${layout}">${`<header class="document-heading">${options.logo ? `<img class="publication-logo" src="${esc(options.logo)}" alt="Lifehouse Hong Kong">` : ''}${paired((l) => `<h1 id="document-title${l === langs[0] ? '' : '-' + l}">${esc(document.titles[l])}</h1>`)}</header>`}<div class="status">${status}</div>${toc}${paired((l) => `<p>${fmt(document.longTitle[l], l)}</p>`)}${pre}${paired((l) => `<p>${enacting(l)}</p>`)}${body}${options.history && options.revision?.history.length ? `<aside class="history"><h2>Amendment history / 修訂紀錄</h2>${options.revision.history.map((h) => `<p>${esc(h.date)} — ${esc(h.titles[langs[0]])}, ${esc(h.clause)} — ${esc(h.action)}</p>`).join('')}</aside>` : ''}</body></html>`;
+  return `<!doctype html><html lang="${langs[0] === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="utf-8">${options.iframe ? '<base href="about:srcdoc">' : ''}<title>${esc(document.titles[langs[0]])}</title><style>${stylesheet}${layout === 'parallel' ? '@page{size:A4 landscape}' : ''}</style></head><body class="${layout}">${`<header class="document-heading">${options.logo ? `<img class="publication-logo" src="${esc(options.logo)}" alt="Lifehouse Hong Kong">` : ''}${paired((l) => `<h1 id="document-title${l === langs[0] ? '' : '-' + l}">${esc(document.titles[l])}</h1>`)}</header>`}<div class="status">${status}${options.revision?.asOf ? paired((l) => `<p>${l === 'en' ? 'Revised text as at' : '修訂文本截至'} ${esc(options.revision!.asOf!)}</p>`) : ''}</div>${amendmentNote(document.id)}${toc}${paired((l) => `<p>${fmt(document.longTitle[l], l)}</p>`)}${pre}${paired((l) => `<p>${enacting(l)}</p>`)}${body}${history.length ? `<aside class="history" id="amendment-history"><h2>Amendment history / 修訂紀錄</h2>${history.map((h, i) => `<div id="history-${i}">${paired((l) => `<p>${esc(h.date)} — ${authority(h, l)} — ${esc(h.action)}</p>`)}</div>`).join('')}</aside>` : ''}</body></html>`;
 }

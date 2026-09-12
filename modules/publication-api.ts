@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { digest, issues, guideSchema, type Guide, paired } from './document.ts';
-import { amendmentSchema, revise, type Amendment } from './amendments.ts';
+import { amendmentSchema, revise, generate, amendmentGuide, type Amendment } from './amendments.ts';
 import { catalogueSchema, publicCatalogue, type Catalogue } from './references.ts';
 const snapshot = z
   .object({
@@ -131,7 +131,7 @@ export async function resolvePublished(
     origin,
     instruments,
     catalogues: [
-      { ...catalogue, documents: [...catalogue.documents.filter((d) => d.id !== id), current] },
+      { ...catalogue, documents: [current, ...catalogue.documents.filter((d) => d.id !== id)] },
     ],
     manifestDigest: await digest(manifest),
     sourceDigest,
@@ -149,6 +149,7 @@ export async function buildPublicationAPI(
     files: Record<string, unknown> = {},
     manifest: Publication = { format: 'lifehouse-publication/1', guides: [] },
     catalogue: Catalogue = { format: 'lifehouse-references/1', documents: [] };
+  const amendmentTargets: Catalogue['documents'] = [];
   if (instruments.some((a) => !guides.some((g) => g.id === a.source.id)))
     throw Error('An amendment has no supplied original Guide.');
   const save = async (doc: Guide | Amendment) => {
@@ -175,11 +176,21 @@ export async function buildPublicationAPI(
       original: await save(g),
       amendments: await Promise.all(amendments.map(save)),
     });
+    const ordered = [...amendments].sort((a, b) =>
+      a.enactment!.effective.localeCompare(b.enactment!.effective),
+    );
+    for (let i = 0; i < ordered.length; i++) {
+      const a = ordered[i],
+        before = await revise(g, ordered.slice(0, i), a.enactment!.effective);
+      const view = amendmentGuide(a, await generate(before.guide, a));
+      amendmentTargets.push(...publicCatalogue(view, base, await digest(a)).documents);
+    }
     const result = await revise(g, amendments, date);
     catalogue.documents.push(
       ...publicCatalogue(result.guide, base, await digest(result.guide), result.repealed).documents,
     );
   }
+  catalogue.documents.push(...amendmentTargets);
   for (const g of guides) {
     const result = await revise(
       g,
@@ -191,6 +202,18 @@ export async function buildPublicationAPI(
     );
     if (!result.repealed && faults.length)
       throw Error(`Cannot publish ${g.id}: ${faults[0].message}`);
+  }
+  for (const a of instruments) {
+    const g = guides.find((g) => g.id === a.source.id)!;
+    const chain = instruments
+      .filter((x) => x.source.id === g.id)
+      .sort((a, b) => a.enactment!.effective.localeCompare(b.enactment!.effective));
+    const before = await revise(g, chain.slice(0, chain.indexOf(a)), a.enactment!.effective);
+    const faults = issues(amendmentGuide(a, await generate(before.guide, a)), [
+      catalogue,
+      ...externalCatalogues,
+    ]).filter((i) => i.severity === 'error' || i.code === 'duplicate-number');
+    if (faults.length) throw Error(`Cannot publish ${a.id}: ${faults[0].message}`);
   }
   publicationSchema.parse(manifest);
   files['publication.json'] = manifest;
