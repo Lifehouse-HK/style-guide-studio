@@ -64,5 +64,5 @@ The tables above preserve the original audit findings. The subsequent user reque
 
 - A1–A14: implemented, with domain/round-trip/browser regression evidence in the implementation plan.
 - A15/A20: per-provision history, full authority links, document/action search and amendment comparison implemented.
-- A16: static reader/history/PDF/API engine and separate empty corpus repository implemented; deployment is in progress.
+- A16: static reader/history/PDF/API engine and separate empty corpus repository implemented; both editor and corpus Pages deployments passed.
 - A17–A19: free Linux font policy, browser/PDF CI and explicit XML projection compatibility implemented. Final typography approval, native OS IME/screen-reader qualification and arbitrary third-party PDF viewers remain human/environment qualification boundaries, not missing amendment features. See [qualification policy](qualification.md).

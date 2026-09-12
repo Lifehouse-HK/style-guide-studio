@@ -8,7 +8,7 @@ Updated 2026-09-12. The user requested a restart from zero. The previous applica
 - [x] N4: Conventional tree/form editor with explicit Add/Move/Save/Discard, recovery, diagnostics and read-only proofs. Amendment action workspace and enacted revision workspace. No editable page canvas or ribbon.
 - [x] N5: Bounded host, browser and export verification completed below; remaining qualification work is explicit and is not represented as release readiness.
 
-No implementation phase is active. Local definition-list work and the requested feature audit are complete. The previously deployed editor is live on GitHub Pages. Next ready action is user evaluation of the replacement editor, followed by the qualification items below. The corpus repository and publication/API deployment remain outside this implementation; the editor is deployed separately under D1.
+R1–R4 are complete. All audit implementation work is pushed; the editor and separate publication site/API are deployed, including the final reference-retention fix. The corpus is intentionally empty until genuine enacted Guides are added. Detailed current evidence is in the audit completion programme at the end; earlier entries retain their historical checks.
 
 ## Fresh evidence — 2026-09-12
 
@@ -22,13 +22,14 @@ No implementation phase is active. Local definition-list work and the requested 
 
 ## Qualification and deliberate boundaries
 
-- Final document typography and visible amendment-history presentation await user design decisions. Font CSS is centralised; Times New Roman is requested only in document output.
-- Qualify Linux/CI Chromium dependencies, open-source Chinese font installation and consistent page metrics before unattended publication. Paid/proprietary fonts are not bundled.
-- Qualify internal and cross-file PDF destination behavior across target viewers; HTML/reference URL tests do not establish viewer support. Tagged output is not an accessibility conformance claim.
-- Broaden actual UI stories for complex table editing, cross-parent movement, multiple loaded revision instruments and real cross-origin catalogue hosting. Current coverage combines limited browser stories with domain tests.
-- XML import is exact source-profile round-trip only. Inline formatting markers remain literal in the legal XML projection; generic Akoma Ntoso semantic interchange is not claimed.
-- Publication authority/certification, repository review, website build/deploy and catalogue aggregation belong to the deferred corpus tooling. An enactment record is not a digital signature.
-- No free-form exceptional amendment instructions, relocation, renumbering, splitting/merging of enacted identities or amendment of amending instruments. These require deliberate domain design rather than editable generated prose.
+- Final document typography remains a user design decision. Typography is centralised; the UI remains sans-serif.
+- Linux CI now installs free fonts and checks actual PDF destinations, table pagination, tagging and URLs. Specific third-party viewer/security behavior still needs target-environment qualification.
+- Browser stories now include API resolution, definitions, supplemental amendments, visible formatting, Chinese composition events and keyboard navigation. Native OS IME candidate selection and screen-reader workflows still require human checks; no accessibility conformance claim is made.
+- XML is an exact source-preserving projection with v1/v2 compatibility and structured formatting. Generic third-party Akoma Ntoso/CLML import remains excluded.
+- The separate corpus now has an atomic static build and deployment. The team supplies actual enactment decisions and source documents; an enactment record is not a digital signature.
+- Enacted relocation, renumbering, splitting/merging, amendment of amending instruments and free-form exceptional operative prose remain deliberately unsupported.
+
+See [the current qualification policy](docs/qualification.md).
 
 ## Editor feedback — 2026-09-12
 
@@ -99,7 +100,7 @@ User authorised implementation of all audit follow-ups and push. Preserve delibe
 - [x] R1: Reference integrity, PDF print destinations, front-matter validation/projection and failed-save recovery (A1–A6, A13–A14).
 - [x] R2: Definition/alias and word/front-matter amendment lifecycle; nested definition content; supplemental amendment provisions (A7–A12).
 - [x] R3: Amendment annotations, search/comparison, publication builder and separate corpus repository (A15–A16, A20).
-- [~] R4: Linux/browser/PDF CI, format compatibility and bounded accessibility/IME checks; push and deploy (A17–A19).
+- [x] R4: Linux/browser/PDF CI, format compatibility and bounded accessibility/IME checks; push and deploy (A17–A19).
 
 Routine choices: use right-aligned latest amendment notes linking a full history, deterministic source-profile version compatibility, free serif font fallbacks on Linux, and a separate `church-publication-guides` corpus repository. Actual team enactments are not invented; an empty corpus can be deployed until genuine enacted documents are supplied.
 
@@ -120,3 +121,5 @@ Routine choices: use right-aligned latest amendment notes linking a full history
 
 - Release review found and fixed a reference-retention edge case: substituting/repealing a provision now preserves its definition and numbered-branch tombstones/destinations, including suppressed closing text. Removing a populated master through wholesale replacement requires explicit document-name operations first. Fresh 41 tests, type check and build passed.
 - Initial Linux build/deploy [34690719723](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34690719723) passed all browser/PDF steps. Its actual EN/Chinese/parallel PDF artifacts were downloaded; parallel first/table pages and Chinese first page were visually inspected. Corpus deployment [34690740971](https://github.com/Lifehouse-HK/church-publication-guides/actions/runs/34690740971) passed. Final reference-retention follow-up deployment remains pending.
+
+- R4 complete (2026-09-12): final engine code `2b8ae33` passed Linux [run 34690881827](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34690881827), including 41 tests, all five browser stories, actual PDF checks, build and Pages deployment. Corpus `c945503` pins that engine and passed [run 34690898573](https://github.com/Lifehouse-HK/church-publication-guides/actions/runs/34690898573). Both public sites return HTTP 200; the live editor reads the corpus API successfully. No synthetic church enactments were published. No implementation phase remains active; next ready action is authoring actual Guides and user evaluation of the documented human qualification items.
