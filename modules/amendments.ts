@@ -1,8 +1,11 @@
+import type { Catalogue } from './references.ts';
 import { richPlain, replaceRich } from './rich-text.ts';
 import { editText } from './text-formatting.ts';
 import { z } from 'zod';
 import {
   checkEnactment,
+  frontMatterIssues,
+  referenceIssues,
   commonShape,
   paired,
   nodeSchema,
@@ -98,6 +101,10 @@ export async function newAmendment(base: Guide): Promise<Amendment> {
   return {
     ...common,
     type: 'amendment',
+    longTitle: pair(
+      `A Style Guide to amend the ${base.titles.en}.`,
+      `本指引旨在修訂《${base.titles.zh}》。`,
+    ),
     id: 'amendment-' + crypto.randomUUID(),
     mode: base.mode,
     source: { id: base.id, digest: await digest(base), titles: { ...base.titles } },
@@ -429,8 +436,13 @@ export async function enactAmendment(
   base: Guide,
   a: Amendment,
   record: Enactment,
+  catalogues: Catalogue[] = [],
 ): Promise<Amendment> {
   if (a.stage !== 'draft') throw Error('Already enacted.');
+  const opening = frontMatterIssues(a);
+  if (opening.length) throw Error(opening[0].message);
+  const frontRefs = referenceIssues({ ...base, ...a, type: 'guide', nodes: [] }, catalogues);
+  if (frontRefs.some((i) => i.severity === 'error')) throw Error(frontRefs[0].message);
   const clauses = await generate(base, a);
   const state = await proposed(base, a);
   if (!a.titles.en.trim() || !a.titles.zh.trim() || !a.actions.length)
@@ -453,7 +465,9 @@ export async function enactAmendment(
     throw Error('Give generated clauses and subclauses distinct manual numbers.');
   if (
     !state.repealed &&
-    issues(state.guide).some((i) => i.severity === 'error' || i.code === 'duplicate-number')
+    issues(state.guide, catalogues).some(
+      (i) => i.severity === 'error' || i.code === 'duplicate-number',
+    )
   )
     throw Error('The proposed Guide has incomplete content or duplicate public addresses.');
   if (

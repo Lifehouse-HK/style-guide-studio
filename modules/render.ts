@@ -3,6 +3,7 @@ import { parseRich, referenceRuns } from './rich-text.ts';
 import { alignments } from './text-formatting.ts';
 import {
   address,
+  definitionAnchor,
   entries,
   hasHeading,
   isGroup,
@@ -140,7 +141,7 @@ export async function render(
                       '\n',
                       '<br>',
                     );
-                return `<div class="definition-entry"><p>“${esc(row.term[l])}”${l === 'en' ? ' ' : ''}${meaning}${i === rows.length - 1 ? (l === 'en' ? '.' : '。') : l === 'en' ? ';' : '；'}</p></div>`;
+                return `<div class="definition-entry"${l === langs[0] ? ` id="${esc(definitionAnchor(b.id, row.documentId ? 'alias-' + row.documentId : row.id))}"` : ''}><p>“${esc(row.term[l])}”${l === 'en' ? ' ' : ''}${meaning}${i === rows.length - 1 ? (l === 'en' ? '.' : '。') : l === 'en' ? ';' : '；'}</p></div>`;
               }),
             )
             .join('')}</div>`
@@ -286,5 +287,5 @@ export async function render(
             )
             .join('')
         : '';
-  return `<!doctype html><html lang="${langs[0] === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="utf-8">${options.iframe ? '<base href="about:srcdoc">' : ''}<title>${esc(document.titles[langs[0]])}</title><style>${stylesheet}${layout === 'parallel' ? '@page{size:A4 landscape}' : ''}</style></head><body class="${layout}">${`<header class="document-heading">${options.logo ? `<img class="publication-logo" src="${esc(options.logo)}" alt="Lifehouse Hong Kong">` : ''}${paired((l) => `<h1>${esc(document.titles[l])}</h1>`)}</header>`}<div class="status">${status}</div>${toc}${paired((l) => `<p>${fmt(document.longTitle[l], l)}</p>`)}${pre}${paired((l) => `<p>${enacting(l)}</p>`)}${body}${options.history && options.revision?.history.length ? `<aside class="history"><h2>Amendment history / 修訂紀錄</h2>${options.revision.history.map((h) => `<p>${esc(h.date)} — ${esc(h.titles[langs[0]])}, ${esc(h.clause)} — ${esc(h.action)}</p>`).join('')}</aside>` : ''}</body></html>`;
+  return `<!doctype html><html lang="${langs[0] === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="utf-8">${options.iframe ? '<base href="about:srcdoc">' : ''}<title>${esc(document.titles[langs[0]])}</title><style>${stylesheet}${layout === 'parallel' ? '@page{size:A4 landscape}' : ''}</style></head><body class="${layout}">${`<header class="document-heading">${options.logo ? `<img class="publication-logo" src="${esc(options.logo)}" alt="Lifehouse Hong Kong">` : ''}${paired((l) => `<h1 id="document-title${l === langs[0] ? '' : '-' + l}">${esc(document.titles[l])}</h1>`)}</header>`}<div class="status">${status}</div>${toc}${paired((l) => `<p>${fmt(document.longTitle[l], l)}</p>`)}${pre}${paired((l) => `<p>${enacting(l)}</p>`)}${body}${options.history && options.revision?.history.length ? `<aside class="history"><h2>Amendment history / 修訂紀錄</h2>${options.revision.history.map((h) => `<p>${esc(h.date)} — ${esc(h.titles[langs[0]])}, ${esc(h.clause)} — ${esc(h.action)}</p>`).join('')}</aside>` : ''}</body></html>`;
 }

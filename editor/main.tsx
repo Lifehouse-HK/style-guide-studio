@@ -209,7 +209,7 @@ function App() {
   }, [page, doc, base, layout, proofKind, workspace.catalogues]);
   const all = doc.type === 'guide' ? entries(doc.nodes) : [];
   const chosen = all.find((e) => e.node.id === selected);
-  const diagnostics = doc.type === 'guide' ? issues(doc) : [];
+  const diagnostics = doc.type === 'guide' ? issues(doc, workspace.catalogues) : [];
   function navTab(next: string) {
     if (canLeave()) {
       setPage(next);
@@ -454,8 +454,10 @@ function App() {
                           e.list[e.list.indexOf(e.node)] = n;
                         }),
                       );
+                      return true;
                     } catch (e) {
                       report(e);
+                      return false;
                     }
                   }}
                   onSelect={navigate}
@@ -825,7 +827,7 @@ function App() {
             try {
               const next =
                 doc.type === 'guide'
-                  ? enact(doc, record)
+                  ? enact(doc, record, workspace.catalogues)
                   : await enactAmendment(
                       base ??
                         (() => {
@@ -833,6 +835,7 @@ function App() {
                         })(),
                       doc,
                       record,
+                      workspace.catalogues,
                     );
               update(next, 'Enactment recorded; source is now read-only.');
               setDialog('');
@@ -1142,7 +1145,7 @@ function NodeEditor({
   node: Node;
   guide: Guide;
   catalogues: Catalogue[];
-  onSave: (n: Node) => void;
+  onSave: (n: Node) => boolean;
   onDirty: (v: boolean) => void;
   onAdd: () => void;
   onMove: () => void;
@@ -1170,7 +1173,7 @@ function NodeEditor({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          onSave(draft);
+          if (!onSave(draft)) return;
           setChanged(false);
           onDirty(false);
         }}
@@ -2223,13 +2226,18 @@ function References({
               }}
             >
               <option value="">Select published document</option>
-              {catalogues
-                .flatMap((c) => c.documents)
-                .map((d) => (
-                  <option value={d.id} key={d.id}>
-                    {d.titles.en}
-                  </option>
-                ))}
+              {[
+                ...new Set([
+                  ...catalogues.flatMap((c) => c.documents.map((d) => d.id)),
+                  ...Object.keys(doc.aliases),
+                ]),
+              ].map((id) => (
+                <option key={id} value={id}>
+                  {doc.aliasDetails?.[id]?.titles.en ||
+                    catalogues.flatMap((c) => c.documents).find((d) => d.id === id)?.titles.en ||
+                    id}
+                </option>
+              ))}
             </select>
           </Field>
           <PairFields label="Short name" value={alias} onChange={setAlias} />

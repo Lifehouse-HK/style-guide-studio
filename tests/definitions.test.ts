@@ -116,7 +116,7 @@ test('definition lists round trip through JSON/XML and render sorted indented bi
     resolve('external#' + external.nodes[0].id, g, 'en', [catalogue]).label,
     /of the Translation Guide$/,
   );
-  assert.equal(issues(g).filter((i) => i.severity === 'error').length, 0);
+  assert.equal(issues(g, [catalogue]).filter((i) => i.severity === 'error').length, 0);
 });
 test('definition lists work under subsections and replay through whole-provision amendments', async () => {
   const g = sample(),

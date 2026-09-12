@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   allowed,
   entries,
+  referenceTargets,
   hasHeading,
   id,
   inSchedule,
@@ -333,16 +334,18 @@ function TextField({
             value={key}
             onChange={(e) => setKey(e.target.value)}
           >
-            <option value="">Choose provision or Schedule</option>
-            {entries(guide.nodes).map((e) => (
-              <option key={e.node.id} value={'#' + e.node.id}>
-                {names[e.node.kind].en} {e.node.label} {e.node.heading?.en}
+            <option value="">Choose document, provision, definition or Schedule</option>
+            <option value={guide.id}>This Guide</option>
+            {referenceTargets(guide).map((t) => (
+              <option key={t.id} value={'#' + t.id}>
+                {t.label[lang]}
               </option>
             ))}
             {catalogues
               .flatMap((c) => c.documents)
               .map((d) => (
                 <optgroup key={d.id} label={d.titles[lang]}>
+                  <option value={d.id}>Whole document</option>
                   {d.targets.map((t) => (
                     <option key={t.id} value={d.id + '#' + t.id}>
                       {t.label[lang]}

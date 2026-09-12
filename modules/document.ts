@@ -1,4 +1,5 @@
-import { richPlain } from './rich-text.ts';
+import type { Catalogue } from './references.ts';
+import { richPlain, parseRich, legacyRuns, referenceRuns } from './rich-text.ts';
 import { z } from 'zod';
 
 export type Language = 'en' | 'zh';
@@ -393,12 +394,12 @@ export function numbering(nodes: Node[]): Issue[] {
   }
   return issues;
 }
-export function issues(g: Guide): Issue[] {
-  const out = numbering(g.nodes),
-    seen = new Set<string>();
+export function frontMatterIssues(
+  g: Pick<Guide, 'mode' | 'formula' | 'preamble' | 'titles' | 'longTitle'>,
+): Issue[] {
+  const out: Issue[] = [];
   const add = (target: string, code: string, message: string) =>
     out.push({ severity: 'error', target, code, message });
-  if (!g.nodes.length) add('details', 'empty-guide', 'Add at least one body provision.');
   for (const l of languages(g)) {
     if (!g.formula[l].trim()) add('formula', 'formula', 'Complete the enacting formula.');
     if (g.preamble.mode === 'paragraph' && !g.preamble.paragraph[l].trim())
@@ -411,6 +412,104 @@ export function issues(g: Guide): Issue[] {
   }
   if (!g.titles.en.trim() || !g.titles.zh.trim())
     add('details', 'titles', 'Both formal titles are required.');
+  for (const l of languages(g))
+    if (!g.longTitle[l].trim()) add('opening', 'long-title', `Complete the ${l} long title.`);
+  return out;
+}
+export function definitionAnchor(list: string, item: string) {
+  return `definition-${list}-${item}`;
+}
+export function referenceTargets(g: Guide) {
+  return entries(g.nodes).flatMap((e) => {
+    const repealed = [...e.ancestors, e.node].some((n) => n.repealed);
+    return [
+      {
+        id: e.node.id,
+        label: pair(address(e, 'en'), address(e, 'zh')),
+        repealed,
+        owner: e.node.id,
+      },
+      ...(e.node.blocks ?? []).flatMap((b) =>
+        b.type === 'definitions'
+          ? [
+              ...b.items.map((i) => ({ id: definitionAnchor(b.id, i.id), term: i.term })),
+              ...(b.master
+                ? Object.entries(g.aliases).map(([id, term]) => ({
+                    id: definitionAnchor(b.id, 'alias-' + id),
+                    term,
+                  }))
+                : []),
+            ].map((i) => ({
+              id: i.id,
+              label: pair(
+                `the definition of “${i.term.en}” in ${address(e, 'en')}`,
+                `${address(e, 'zh')}中“${i.term.zh}”的定義`,
+              ),
+              repealed,
+              owner: e.node.id,
+            }))
+          : [],
+      ),
+    ];
+  });
+}
+/** Every field whose output supports references is inspected using its visible text. */
+export function referenceIssues(g: Guide, catalogues: Catalogue[] = []): Issue[] {
+  const out: Issue[] = [],
+    local = referenceTargets(g);
+  const check = (key: string, target: string) => {
+    const [doc, anchor] = key.split('#');
+    const here = !doc || doc === g.id;
+    const document = here
+      ? undefined
+      : catalogues.flatMap((c) => c.documents).find((d) => d.id === doc);
+    const found = anchor
+      ? (here ? local : document?.targets)?.find((t) => t.id === anchor)
+      : undefined;
+    const missing = key.split('#').length > 2 || (!here && !document) || (!!anchor && !found);
+    const draft = document?.status === 'draft';
+    const repealed = document?.status === 'repealed' || found?.repealed;
+    if (missing || draft || repealed)
+      out.push({
+        target,
+        code: 'reference',
+        severity: repealed && !missing && !draft ? 'warning' : 'error',
+        message: `${missing ? 'Unresolved' : draft ? 'Draft (not in effect)' : 'Repealed'} reference: ${key}.`,
+      });
+  };
+  const inspect = (text: string, target: string, html = false) => {
+    for (const run of referenceRuns(html ? parseRich(text) : legacyRuns(text)))
+      if (run.key) check(run.key, target);
+  };
+  for (const l of languages(g)) {
+    inspect(g.longTitle[l], 'opening');
+    inspect(g.formula[l], 'formula');
+    if (g.preamble.mode === 'paragraph') inspect(g.preamble.paragraph[l], 'opening');
+    if (g.preamble.mode === 'list') for (const p of g.preamble.items) inspect(p[l], 'opening');
+  }
+  for (const e of entries(g.nodes)) {
+    if ([...e.ancestors, e.node].some((n) => n.repealed)) continue;
+    for (const l of languages(g)) if (e.node.closing) inspect(e.node.closing[l], e.node.id);
+    for (const b of e.node.blocks ?? []) {
+      if (b.type === 'table') {
+        for (const row of b.rows) for (const cell of row) inspect(cell, e.node.id);
+      } else if (b.type === 'definitions') {
+        for (const item of b.items)
+          for (const l of languages(g)) inspect(item.meaning[l], e.node.id, true);
+        if (b.master) for (const id of Object.keys(g.aliases)) check(id, e.node.id);
+      } else
+        for (const l of languages(g)) inspect(b.text[l], e.node.id, b.textFormat?.[l] === 'html');
+    }
+  }
+  return out;
+}
+export function issues(g: Guide, catalogues: Catalogue[] = []): Issue[] {
+  const out = numbering(g.nodes),
+    seen = new Set<string>();
+  const add = (target: string, code: string, message: string) =>
+    out.push({ severity: 'error', target, code, message });
+  if (!g.nodes.length) add('details', 'empty-guide', 'Add at least one body provision.');
+  out.push(...frontMatterIssues(g));
   for (const e of entries(g.nodes)) {
     const n = e.node;
     if (seen.has(n.id)) add(n.id, 'identity', 'Duplicate permanent identity.');
@@ -457,9 +556,6 @@ export function issues(g: Guide): Issue[] {
             for (const l of languages(g)) {
               if (!item.term[l].trim() || !richPlain(item.meaning[l]).trim())
                 add(n.id, 'definitions', `Complete the ${l} term and meaning.`);
-              for (const m of item.meaning[l].matchAll(/\[\[#([^\]]+)\]\]/g))
-                if (!entries(g.nodes).some((x) => x.node.id === m[1]))
-                  add(n.id, 'reference', `Missing local reference ${m[1]}.`);
             }
           }
           for (const term of [
@@ -487,13 +583,7 @@ export function issues(g: Guide): Issue[] {
       }
     }
   }
-  for (const e of entries(g.nodes))
-    for (const b of e.node.blocks ?? [])
-      if (b.type !== 'table' && b.type !== 'definitions')
-        for (const l of languages(g))
-          for (const m of b.text[l].matchAll(/\[\[#([^\]]+)\]\]/g))
-            if (!entries(g.nodes).some((x) => x.node.id === m[1]))
-              add(e.node.id, 'reference', `Missing local reference ${m[1]}.`);
+  out.push(...referenceIssues(g, catalogues));
   return out;
 }
 export function edit(g: Guide, fn: (copy: Guide) => void): Guide {
@@ -539,9 +629,11 @@ export function validDate(s: string): boolean {
     new Date(s).toISOString().slice(0, 10) === s
   );
 }
-export function enact(g: Guide, record: Enactment): Guide {
+export function enact(g: Guide, record: Enactment, catalogues: Catalogue[] = []): Guide {
   if (g.stage !== 'draft') throw Error('Already enacted.');
-  const errors = issues(g).filter((x) => x.severity === 'error' || x.code === 'duplicate-number');
+  const errors = issues(g, catalogues).filter(
+    (x) => x.severity === 'error' || x.code === 'duplicate-number',
+  );
   if (errors.length)
     throw Error(
       'Resolve incomplete content and duplicate public addresses before enactment. Draft saving remains available.',

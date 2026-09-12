@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   entries,
+  referenceTargets,
   address,
   pair,
   paired,
@@ -20,7 +21,7 @@ export const catalogueSchema = z
         .object({
           id: z.string(),
           titles: paired,
-          status: z.enum(['enacted', 'repealed']),
+          status: z.enum(['draft', 'enacted', 'repealed']),
           revision: z.string(),
           html: z.object({ en: webURL, zh: webURL, parallel: webURL }).strict(),
           pdf: z.object({ en: webURL, zh: webURL, parallel: webURL }).strict(),
@@ -59,11 +60,7 @@ export function publicCatalogue(
         revision,
         html: link('html'),
         pdf: link('pdf'),
-        targets: entries(g.nodes).map((e) => ({
-          id: e.node.id,
-          label: pair(address(e, 'en'), address(e, 'zh')),
-          repealed: !!e.node.repealed,
-        })),
+        targets: referenceTargets(g).map(({ owner, ...target }) => target),
       },
     ],
   };
@@ -93,18 +90,19 @@ export function resolve(
 ): { label: string; href: string; warning?: string } {
   const [doc, target] = key.split('#');
   if (!doc || doc === g.id) {
-    const e = entries(g.nodes).find((e) => e.node.id === target);
+    if (!target) return { label: g.titles[lang], href: '#document-title' };
+    const e = referenceTargets(g).find((e) => e.id === target);
     return e
       ? {
-          label: address(e, lang),
-          href: '#' + e.node.id,
-          ...(e.node.repealed ? { warning: 'Repealed target' } : {}),
+          label: e.label[lang],
+          href: '#' + e.id,
+          ...(e.repealed ? { warning: 'Repealed target' } : {}),
         }
       : { label: `[Missing reference: ${key}]`, href: '', warning: 'Missing reference' };
   }
   const d = catalogues.flatMap((c) => c.documents).find((d) => d.id === doc),
     t = d?.targets.find((t) => t.id === target);
-  if (!d || !t)
+  if (!d || (target && !t))
     return {
       label: `[Unresolved reference: ${key}]`,
       href: '',
@@ -112,11 +110,16 @@ export function resolve(
     };
   const title = g.aliases[doc]?.[lang] || d.titles[lang];
   return {
-    label:
-      lang === 'en'
-        ? `${t.label.en} of ${/^the\s/i.test(title) ? title : 'the ' + title}`
-        : `《${title}》${t.label.zh}`,
-    href: (pdf ? d.pdf : d.html)[lang] + '#' + encodeURIComponent(target),
-    ...(d.status === 'repealed' || t.repealed ? { warning: 'Repealed target' } : {}),
+    label: !target
+      ? title
+      : lang === 'en'
+        ? `${t!.label.en} of ${/^the\s/i.test(title) ? title : 'the ' + title}`
+        : `《${title}》${t!.label.zh}`,
+    href: (pdf ? d.pdf : d.html)[lang] + (target ? '#' + encodeURIComponent(target) : ''),
+    ...(d.status === 'draft'
+      ? { warning: 'Draft target — not in effect' }
+      : d.status === 'repealed' || t?.repealed
+        ? { warning: 'Repealed target' }
+        : {}),
   };
 }

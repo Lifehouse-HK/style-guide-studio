@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { digest, guideSchema, type Guide, paired } from './document.ts';
+import { digest, issues, guideSchema, type Guide, paired } from './document.ts';
 import { amendmentSchema, revise, type Amendment } from './amendments.ts';
 import { catalogueSchema, publicCatalogue, type Catalogue } from './references.ts';
 const snapshot = z
@@ -143,6 +143,7 @@ export async function buildPublicationAPI(
   instruments: Amendment[],
   input: string,
   date = hongKongToday(),
+  externalCatalogues: Catalogue[] = [],
 ): Promise<Record<string, unknown>> {
   const base = publicationBase(input),
     files: Record<string, unknown> = {},
@@ -178,6 +179,18 @@ export async function buildPublicationAPI(
     catalogue.documents.push(
       ...publicCatalogue(result.guide, base, await digest(result.guide), result.repealed).documents,
     );
+  }
+  for (const g of guides) {
+    const result = await revise(
+      g,
+      instruments.filter((a) => a.source.id === g.id),
+      date,
+    );
+    const faults = issues(result.guide, [catalogue, ...externalCatalogues]).filter(
+      (i) => i.severity === 'error',
+    );
+    if (!result.repealed && faults.length)
+      throw Error(`Cannot publish ${g.id}: ${faults[0].message}`);
   }
   publicationSchema.parse(manifest);
   files['publication.json'] = manifest;

@@ -104,3 +104,5 @@ User authorised implementation of all audit follow-ups and push. Preserve delibe
 Routine choices: use right-aligned latest amendment notes linking a full history, deterministic source-profile version compatibility, free serif font fallbacks on Linux, and a separate `church-publication-guides` corpus repository. Actual team enactments are not invented; an empty corpus can be deployed until genuine enacted documents are supplied.
 
 - A2 complete: reference parsing spans rich-text runs, preserving formatting and literal-code examples. Type check and 3 focused rich-text tests passed (2026-09-12).
+
+- A1/A4/A13 complete: shared reference and front-matter validation reaches enactment/API builds; missing/draft references are errors and repealed references warnings. Whole-document and definition destinations are available. A6/A14 also corrected: failed provision saves retain dirty state and saved aliases remain selectable offline. Fresh 31-test suite passed (2026-09-12).

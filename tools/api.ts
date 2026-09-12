@@ -7,13 +7,16 @@ if (!output || !baseURL || !inputs.length)
   throw Error(
     'Usage: npm run api -- output-directory https://publication.example/ original.json amendment.json …',
   );
-const documents = await Promise.all(
-  inputs.map(async (path) => parseFile(await readFile(path, 'utf8')).document),
+const projects = await Promise.all(
+  inputs.map(async (path) => parseFile(await readFile(path, 'utf8'))),
 );
+const documents = projects.map((p) => p.document);
 const files = await buildPublicationAPI(
   documents.filter((d) => d.type === 'guide'),
   documents.filter((d) => d.type === 'amendment'),
   baseURL,
+  undefined,
+  projects.flatMap((p) => p.catalogues),
 );
 // Write the discovery manifest last. Deploy the output directory atomically.
 for (const [path, data] of Object.entries(files).sort(
