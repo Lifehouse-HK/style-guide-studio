@@ -36,6 +36,7 @@ try {
     await page.pdf({
       path: resolve(output, layout + '.pdf'),
       preferCSSPageSize: true,
+      displayHeaderFooter: false,
       printBackground: true,
       tagged: true,
       outline: true,

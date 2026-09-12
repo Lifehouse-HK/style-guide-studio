@@ -200,6 +200,28 @@ try {
     assert.equal(await page.evaluate(() => window.scrollY), 0);
   }
   await page.screenshot({ path: 'work/feedback/proof.png' });
+  // Intercept only the native dialog; exercise the actual Print button and iframe.
+  await page.evaluateOnNewDocument(
+    'window.print = function () { document.documentElement.dataset.printRequested = "true"; };',
+  );
+  await click('Print / Save PDF');
+  await page.waitForFunction(
+    () =>
+      document.querySelector<HTMLIFrameElement>('#pdf-print-frame')?.contentDocument
+        ?.documentElement.dataset.printRequested === 'true',
+  );
+  const printed = await page.$eval('#pdf-print-frame', (el) => {
+    const doc = (el as HTMLIFrameElement).contentDocument!;
+    return {
+      html: doc.documentElement.outerHTML,
+      loaded: [...doc.images].every((i) => i.complete),
+    };
+  });
+  assert.ok(printed.loaded);
+  assert.match(printed.html, /@top-right/);
+  assert.match(printed.html, /size:A4 landscape/);
+  assert.match(printed.html, /margin:72pt 51pt/);
+
   // A fresh monolingual document has no language switch.
   const fresh = await (await browser.createBrowserContext()).newPage();
   await fresh.goto('http://127.0.0.1:5173/');

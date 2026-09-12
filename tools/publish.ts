@@ -65,6 +65,7 @@ try {
         await page.pdf({
           path: join(staging, path),
           preferCSSPageSize: true,
+          displayHeaderFooter: false,
           printBackground: true,
           tagged: true,
           outline: true,

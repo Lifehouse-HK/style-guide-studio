@@ -1,7 +1,8 @@
+import { stylesheet, pageStyles, printProfile } from './publication-style.ts';
+export { stylesheet } from './publication-style.ts';
 import { recitalText } from './front-matter.ts';
 import { definitionRows, definedDocument } from './definitions.ts';
 import { parseRich, referenceRuns } from './rich-text.ts';
-import { alignments } from './text-formatting.ts';
 import {
   address,
   definitionAnchor,
@@ -34,12 +35,6 @@ export const escape = (s: string) =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-export const stylesheet = `
-.definition-branches{margin-left:2.3em}.definitions{margin:8px 0 12px}.definition-entry{margin:6px 0 6px 2.3em}.definition-entry p{margin:0}.definition-entry{break-inside:avoid}
-.small-caps{font-variant-caps:small-caps}.preamble-intro{break-after:avoid}
-.document-heading{break-inside:avoid}.publication-logo{display:block;width:44mm;height:auto;max-width:100%;margin:0 auto 5mm}
-@page{size:A4;margin:20mm 18mm;@bottom-center{content:counter(page);font-size:10pt}}*{box-sizing:border-box}body{max-width:900px;margin:30px auto;padding:0 28px;font-family:"Times New Roman","Liberation Serif","Noto Serif CJK TC","Songti TC",serif;font-size:12pt;line-height:1.55;color:#111}h1{text-align:center;font-size:20pt;line-height:1.3}h2{font-size:15pt;text-align:center;margin:24px 0 12px}h3{font-size:12pt;margin:18px 0 6px}p{margin:6px 0}.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:25px}.pair>*{min-width:0}.children{margin-left:1.7em}.number{display:inline-block;min-width:2.3em;font-weight:normal}.status{border-block:1px solid #555;padding:8px 0;text-align:center;margin:20px 0;font-family:system-ui,sans-serif;font-size:10pt}.clause{margin:12px 0}.group{margin-top:25px}.muted{color:#555}.note{font-size:10pt;border-left:2px solid #bbb;padding-left:10px}blockquote{margin:8px 0 12px 22px;border-left:2px solid #aaa;padding-left:15px}table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11pt;table-layout:fixed}th,td{border:1px solid #777;padding:6px;vertical-align:top;overflow-wrap:anywhere}th{font-weight:bold}caption{text-align:left;font-weight:bold}thead{display:table-header-group}.row-number{width:3em}tr{break-inside:avoid}a{color:#134f80;text-decoration:underline}code{font-family:monospace;font-size:.9em}nav{border-bottom:1px solid #777;padding:12px 0;margin-bottom:24px}nav ul{list-style:none;padding-left:15px}nav a{color:inherit}h2,h3{break-after:avoid}.warning{color:#8c2a15}.parallel{max-width:1400px}.shared{grid-column:1/-1}.amendment-note{text-align:right;font-size:10pt;color:#444}.history{font-size:10pt;border-top:1px solid #777;margin-top:30px}@media print{body{margin:0;padding:0;max-width:none}a{color:inherit}.status{font-family:serif}.no-print{display:none}}
-`;
 export function inline(
   text: string,
   g: Guide,
@@ -145,16 +140,15 @@ export async function render(
       )
       .join('')}</tbody></table>`;
   const paragraphs = (b: TextBlock, l: Language, prefix = '') => {
-    const alignment = alignments(b, l);
     return b.text[l]
       .split('\n')
       .map(
         (text, i) =>
-          `<p style="text-align:${alignment[i]}"${b.type === 'note' ? ' class="note"' : ''}>${i === 0 ? prefix : ''}${(b.textFormat?.[l] === 'html' ? richInline(text, referenceGuide, l, options.catalogues, options.pdf) : fmt(text, l)) || '<br>'}</p>`,
+          `<p class="provision-text${prefix && i === 0 ? ' numbered-line' : ''}${b.type === 'note' ? ' note' : ''}" style="text-align:${b.paragraphAlign?.[l]?.[i] ?? b.align?.[l] ?? 'justify'}">${i === 0 ? prefix : ''}${(b.textFormat?.[l] === 'html' ? richInline(text, referenceGuide, l, options.catalogues, options.pdf) : fmt(text, l)) || '<br>'}</p>`,
       )
       .join('');
   };
-  const block = (b: Block): string =>
+  const block = (b: Block, indent: number = printProfile.indent): string =>
     b.type === 'table'
       ? `<div class="shared">${table(b)}</div>`
       : b.type === 'definitions'
@@ -188,7 +182,7 @@ export async function render(
                   return `<div class="definition-entry"${l === langs[0] ? ` id="${esc(definitionAnchor(b.id, row.documentId ? 'alias-' + row.documentId : row.id))}"` : ''}><p>“${esc(row.term[l])}”${l === 'en' ? ' ' : ''}${meaning}${!nested ? punctuation(l) : ''}</p></div>`;
                 }) +
                 (nested
-                  ? `<div class="definition-branches">${row.table && !row.repealed ? block(row.table) : ''}${row.children?.map((n) => node(n)).join('') ?? ''}${row.closing && !row.repealed ? paired((l) => `<p>${fmt(row.closing![l], l)}${punctuation(l)}</p>`) : ''}</div>`
+                  ? `<div class="definition-branches">${row.table && !row.repealed ? block(row.table) : ''}${row.children?.map((n) => node(n, false, indent + printProfile.indent)).join('') ?? ''}${row.closing && !row.repealed ? paired((l) => `<p class="closing">${fmt(row.closing![l], l)}${punctuation(l)}</p>`) : ''}</div>`
                   : '')
               );
             })
@@ -196,7 +190,8 @@ export async function render(
         : paired((l) =>
             b.type === 'quote' ? `<blockquote>${paragraphs(b, l)}</blockquote>` : paragraphs(b, l),
           );
-  function node(n: Node, quoted = false): string {
+  function node(n: Node, quoted = false, baseIndent = 0): string {
+    const textIndent = baseIndent + printProfile.indent;
     const headingLabel = (l: Language) =>
       isGroup(n.kind) || ['schedule', 'appendix'].includes(n.kind)
         ? l === 'en'
@@ -204,30 +199,33 @@ export async function render(
           : ['schedule', 'appendix'].includes(n.kind)
             ? `${names[n.kind].zh}${n.label}`
             : `第${n.label}${names[n.kind].zh}`
-        : n.label + '.';
+        : n.label;
     const h = isGroup(n.kind) || ['schedule', 'appendix'].includes(n.kind) ? 'h2' : 'h3';
     const heading = hasHeading(n.kind)
-      ? paired((l) => `<${h}>${esc(headingLabel(l))} ${esc(n.heading?.[l] ?? '')}</${h}>`)
+      ? paired(
+          (l) =>
+            `<${h}>${h === 'h2' ? `<span class="group-label">${esc(headingLabel(l))}</span>${n.heading?.[l] ? `<span class="group-title">${esc(n.heading[l])}</span>` : ''}` : `<span class="section-number">${esc(headingLabel(l))}</span>${esc(n.heading?.[l] ?? '')}`}</${h}>`,
+        )
       : '';
     const numbered = !hasHeading(n.kind),
       first = n.blocks?.[0];
     const text = n.repealed
       ? paired(
           (l) =>
-            `<p>${numbered ? `<span class="number">(${esc(n.label)})</span>` : ''}${l === 'en' ? '[Repealed]' : '[已廢除]'}</p>`,
+            `<p class="provision-text numbered-line">${numbered ? `<span class="number">(${esc(n.label)})</span>` : ''}${l === 'en' ? '[Repealed]' : '[已廢除]'}</p>`,
         )
       : (numbered
           ? paired((l) =>
               first && first.type === 'text'
                 ? paragraphs(first, l, `<span class="number">(${esc(n.label)})</span>`)
-                : `<p><span class="number">(${esc(n.label)})</span></p>`,
+                : `<p class="provision-text numbered-line"><span class="number">(${esc(n.label)})</span></p>`,
             )
           : '') +
         (n.blocks ?? [])
           .slice(numbered && first?.type === 'text' ? 1 : 0)
-          .map(block)
+          .map((b) => block(b, textIndent))
           .join('');
-    return `<section${quoted ? '' : ` id="${esc(n.id)}"`} class="${isGroup(n.kind) ? 'group' : 'clause'}">${heading}${quoted ? '' : amendmentNote(n.id)}${text}${
+    return `<section${quoted ? '' : ` id="${esc(n.id)}"`} class="${isGroup(n.kind) ? 'group' : 'clause'} ${n.kind}" style="--text-indent:${textIndent}pt;--heading-indent:${baseIndent}pt">${heading ? `<div class="provision-heading">${heading}</div>` : ''}${quoted ? '' : amendmentNote(n.id)}${text}${
       n.repealed && !quoted
         ? referenceTargets(referenceGuide)
             .filter((t) => t.owner === n.id && t.id !== n.id)
@@ -237,10 +235,10 @@ export async function render(
             .flatMap((b) =>
               b.type === 'definitions' ? b.items.flatMap((i) => i.children ?? []) : [],
             )
-            .map((c) => node(c))
+            .map((c) => node(c, false, textIndent + printProfile.indent))
             .join('')
         : ''
-    }${n.kind === 'appendix' ? paired((l) => `<p class="muted">${l === 'en' ? 'Informative appendix' : '資料性附錄'}</p>`) : ''}<div class="${isGroup(n.kind) || n.kind === 'schedule' || n.kind === 'appendix' ? '' : 'children'}">${n.children.map((c) => node(c, quoted)).join('')}</div>${n.closing ? paired((l) => (n.closing![l] ? `<p>${fmt(n.closing![l], l)}</p>` : '')) : ''}</section>`;
+    }${n.kind === 'appendix' ? paired((l) => `<p class="muted">${l === 'en' ? 'Informative appendix' : '資料性附錄'}</p>`) : ''}<div class="${isGroup(n.kind) || n.kind === 'schedule' || n.kind === 'appendix' ? '' : 'children'}">${n.children.map((c) => node(c, quoted, hasHeading(n.kind) ? baseIndent : textIndent)).join('')}</div>${n.closing ? paired((l) => (n.closing![l] ? `<p class="closing">${fmt(n.closing![l], l)}</p>` : '')) : ''}</section>`;
   }
   const status = paired((l) =>
     options.proposed
@@ -265,13 +263,13 @@ export async function render(
   else {
     const clauses = await generate(g, document);
     const clause = (label: string, heading: Pair, content: string, anchor: string) =>
-      `<section id="${esc(anchor)}">${paired((l) => `<h3>${esc(label)}. ${esc(heading[l])}</h3>`)}${content}</section>`;
+      `<section id="${esc(anchor)}" class="clause section" style="--text-indent:${printProfile.indent}pt;--heading-indent:0pt">${`<div class="provision-heading">${paired((l) => `<h3><span class="section-number">${esc(label)}</span>${esc(heading[l])}</h3>`)}</div>`}${content}</section>`;
     body = clause(
       document.citationLabel,
       pair('Short title and commencement', '簡稱及生效日期'),
       paired(
         (l) =>
-          `<p>${l === 'en' ? `This Style Guide may be cited as the ${esc(document.titles.en)}.` : `本格式指引可引稱為《${esc(document.titles.zh)}》。`}</p><p>${l === 'en' ? 'This Style Guide comes into operation on ' : '本格式指引於'}${esc(document.enactment?.effective ?? '[effective date / 生效日期]')}${l === 'en' ? '.' : '起實施。'}</p>`,
+          `<p class="provision-text">${l === 'en' ? `This Style Guide may be cited as the ${esc(document.titles.en)}.` : `本格式指引可引稱為《${esc(document.titles.zh)}》。`}</p><p class="provision-text">${l === 'en' ? 'This Style Guide comes into operation on ' : '本格式指引於'}${esc(document.enactment?.effective ?? '[effective date / 生效日期]')}${l === 'en' ? '.' : '起實施。'}</p>`,
       ),
       'citation',
     );
@@ -281,7 +279,7 @@ export async function render(
         pair('Style Guide amended', '修訂格式指引'),
         paired(
           (l) =>
-            `<p>${l === 'en' ? `The ${esc(g.titles.en)} is amended as set out in ${clauses.length === 1 ? 'section' : 'sections'} ${clauses.map((c) => esc(c.label)).join(', ')}.` : `《${esc(g.titles.zh)}》現予修訂，修訂方式列於第${clauses.map((c) => esc(c.label)).join('、')}條。`}</p>`,
+            `<p class="provision-text">${l === 'en' ? `The ${esc(g.titles.en)} is amended as set out in ${clauses.length === 1 ? 'section' : 'sections'} ${clauses.map((c) => esc(c.label)).join(', ')}.` : `《${esc(g.titles.zh)}》現予修訂，修訂方式列於第${clauses.map((c) => esc(c.label)).join('、')}條。`}</p>`,
         ),
         'introduction',
       );
@@ -294,12 +292,16 @@ export async function render(
             (i) =>
               paired(
                 (l) =>
-                  `<p>${c.items.length > 1 ? `<span class="number">(${esc(i.label)})</span>` : ''}${esc(i.text[l]).replaceAll('\n', '<br>')}</p>`,
+                  `<p class="provision-text numbered-line">${c.items.length > 1 ? `<span class="number">(${esc(i.label)})</span>` : ''}${esc(i.text[l]).replaceAll('\n', '<br>')}</p>`,
               ) +
-              (i.payload ? `<blockquote>${node(i.payload, true)}</blockquote>` : '') +
-              (i.table ? `<blockquote>${table(i.table)}</blockquote>` : '') +
+              (i.payload
+                ? `<blockquote class="amendment-quotation">${node(i.payload, true, printProfile.indent)}</blockquote>`
+                : '') +
+              (i.table
+                ? `<blockquote class="amendment-quotation">${table(i.table)}</blockquote>`
+                : '') +
               (i.definition
-                ? `<blockquote>${block({ id: 'quote-' + c.id + '-' + i.label, type: 'definitions', master: false, items: [i.definition] })}</blockquote>`
+                ? `<blockquote class="amendment-quotation">${block({ id: 'quote-' + c.id + '-' + i.label, type: 'definitions', master: false, items: [i.definition] })}</blockquote>`
                 : ''),
           )
           .join(''),
@@ -310,15 +312,15 @@ export async function render(
   }
   const toc =
     document.type === 'guide'
-      ? `<nav aria-label="Contents">${paired((l) => `<strong>${l === 'en' ? 'Contents' : '目錄'}</strong>`)}<ul>${entries(
+      ? `<nav aria-label="Contents" class="contents"><details><summary>${layout === 'parallel' ? 'Contents / 目錄' : layout === 'zh' ? '目錄' : 'Contents'}</summary><ul>${entries(
           document.nodes,
         )
           .filter((e) => hasHeading(e.node.kind))
           .map(
             (e) =>
-              `<li>${paired((l) => `<a href="#${esc(e.node.id)}">${esc(address(e, l).replace(/^section/, 'Section'))} ${esc(e.node.heading?.[l] ?? '')}</a>`)}</li>`,
+              `<li class="${isGroup(e.node.kind) ? 'toc-group' : 'toc-provision'}">${paired((l) => `<a href="#${esc(e.node.id)}">${esc(address(e, l).replace(/^section/, 'Section'))} ${esc(e.node.heading?.[l] ?? '')}</a>`)}</li>`,
           )
-          .join('')}</ul></nav>`
+          .join('')}</ul></details></nav>`
       : '';
   const preambleIntro = (l: Language) =>
     l === 'en' ? '<span class="small-caps">Whereas</span>—' : '鑑於——';
@@ -343,10 +345,43 @@ export async function render(
             .map((p, i) =>
               paired(
                 (l) =>
-                  `<p><span class="number">${i + 1}.</span>${fmt(i === 0 ? recitalText(p[l], l) : p[l], l)}</p>`,
+                  `<p class="provision-text numbered-line"><span class="number">${i + 1}.</span>${fmt(i === 0 ? recitalText(p[l], l) : p[l], l)}</p>`,
               ),
             )
             .join('')
         : '';
-  return `<!doctype html><html lang="${langs[0] === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="utf-8">${options.iframe ? '<base href="about:srcdoc">' : ''}<title>${esc(document.titles[langs[0]])}</title><style>${stylesheet}${layout === 'parallel' ? '@page{size:A4 landscape}' : ''}</style></head><body class="${layout}">${`<header class="document-heading">${options.logo ? `<img class="publication-logo" src="${esc(options.logo)}" alt="Lifehouse Hong Kong">` : ''}${paired((l) => `<h1 id="document-title${l === langs[0] ? '' : '-' + l}">${esc(document.titles[l])}</h1>`)}</header>`}<div class="status">${status}${options.revision?.asOf ? paired((l) => `<p>${l === 'en' ? 'Revised text as at' : '修訂文本截至'} ${esc(options.revision!.asOf!)}</p>`) : ''}</div>${amendmentNote(document.id)}${toc}${paired((l) => `<p>${fmt(document.longTitle[l], l)}</p>`)}${pre}${paired((l) => `<p>${enacting(l)}</p>`)}${body}${history.length ? `<aside class="history" id="amendment-history"><h2>Amendment history / 修訂紀錄</h2>${history.map((h, i) => `<div id="history-${i}">${paired((l) => `<p>${esc(h.date)} — ${authority(h, l)} — ${esc(h.action)}</p>`)}</div>`).join('')}</aside>` : ''}${options.pdf ? `<div aria-hidden="true" style="position:absolute;left:0;top:0;width:0;height:0;overflow:hidden">${['document-title', ...referenceTargets(referenceGuide).map((t) => t.id)].map((id) => `<a tabindex="-1" href="#${esc(id)}" style="display:inline-block;width:0;height:0;overflow:hidden">${esc(id)}</a>`).join('')}</div>` : ''}</body></html>`;
+  const effective = document.enactment?.effective;
+  const headerStatus = langs
+    .map((l) =>
+      options.proposed
+        ? l === 'en'
+          ? 'PROPOSED — NOT IN EFFECT'
+          : '建議文本 — 尚未生效'
+        : document.stage === 'draft'
+          ? l === 'en'
+            ? 'DRAFT — NOT IN EFFECT'
+            : '草案 — 尚未生效'
+          : options.revision?.repealed
+            ? l === 'en'
+              ? 'REPEALED'
+              : '已廢除'
+            : options.revision?.asOf
+              ? `${l === 'en' ? 'Revised text as at' : '修訂文本截至'} ${options.revision.asOf}`
+              : effective
+                ? `${l === 'en' ? 'Effective:' : '生效：'} ${effective}`
+                : '',
+    )
+    .join(' / ');
+  const runningTitle = langs.map((l) => document.titles[l]).join(' / ');
+  const date = document.enactment?.date;
+  const dateText = (l: Language) =>
+    date
+      ? new Intl.DateTimeFormat(l === 'en' ? 'en-GB' : 'zh-Hant-HK', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(new Date(date + 'T00:00:00Z'))
+      : '';
+  return `<!doctype html><html lang="${langs[0] === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="utf-8">${options.iframe ? '<base href="about:srcdoc">' : ''}<title>${esc(document.titles[langs[0]])}</title><style>${stylesheet}${pageStyles(layout, runningTitle, headerStatus)}</style></head><body class="${layout}">${toc}${`<header class="document-heading">${options.logo ? `<img class="publication-logo" src="${esc(options.logo)}" alt="Lifehouse Hong Kong">` : ''}${paired((l) => `<h1 id="document-title${l === langs[0] ? '' : '-' + l}">${esc(document.titles[l])}</h1>`)}</header>`}<div class="status">${status}${options.revision?.asOf ? paired((l) => `<p>${l === 'en' ? 'Revised text as at' : '修訂文本截至'} ${esc(options.revision!.asOf!)}</p>`) : ''}</div>${amendmentNote(document.id)}${paired((l) => `<p class="long-title">${fmt(document.longTitle[l], l)}</p>`)}${date ? paired((l) => `<p class="enactment-date">[${esc(dateText(l))}]</p>`) : ''}<div class="preamble">${pre}</div><div class="enacting">${paired((l) => `<p>${enacting(l)}</p>`)}</div>${body}${history.length ? `<aside class="history" id="amendment-history"><h2>Amendment history / 修訂紀錄</h2>${history.map((h, i) => `<div id="history-${i}">${paired((l) => `<p>${esc(h.date)} — ${authority(h, l)} — ${esc(h.action)}</p>`)}</div>`).join('')}</aside>` : ''}${options.pdf ? `<div aria-hidden="true" style="position:absolute;left:0;top:0;width:0;height:0;overflow:hidden">${['document-title', ...referenceTargets(referenceGuide).map((t) => t.id)].map((id) => `<a tabindex="-1" href="#${esc(id)}" style="display:inline-block;width:0;height:0;overflow:hidden">${esc(id)}</a>`).join('')}</div>` : ''}</body></html>`;
 }

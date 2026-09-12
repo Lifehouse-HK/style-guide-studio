@@ -39,3 +39,14 @@ test('XML generates the preamble opening and can still reopen unchanged version-
   assert.ok(!old.includes('WHEREAS'));
   assert.deepEqual(await importXml(old), w);
 });
+
+test('a document title cannot inject HTML or CSS into its running header', async () => {
+  const { render } = await import('../modules/render.ts');
+  const g = specimen();
+  g.titles.en = 'Title " } </style><script>alert(1)</script>\nNext line';
+  const html = await render(g, { layout: 'en', pdf: true });
+  assert.equal((html.match(/<style>/g) ?? []).length, 1);
+  assert.equal((html.match(/<\/style>/g) ?? []).length, 1);
+  assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /&lt;script&gt;/);
+});

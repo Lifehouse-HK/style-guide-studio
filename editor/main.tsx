@@ -772,6 +772,10 @@ function App() {
               >
                 <Icon name="printer" /> Print / Save PDF
               </button>
+              <small className="muted">
+                Print at 100% with CSS/default margins. Turn off the browser’s Headers and footers;
+                the document supplies its own.
+              </small>
             </div>
             {proof ? (
               <iframe

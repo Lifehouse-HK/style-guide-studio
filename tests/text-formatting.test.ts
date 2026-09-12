@@ -22,7 +22,7 @@ test('cursor and selections align only touched paragraphs, preserving the other 
   const html = await render(g, { layout: 'en' });
   assert.match(
     html,
-    /text-align:right">First<\/p><p style="text-align:center">Second<\/p><p style="text-align:center">Third/,
+    /text-align:right">First<\/p><p[^>]*style="text-align:center">Second<\/p><p[^>]*style="text-align:center">Third/,
   );
 });
 test('new paragraphs inherit alignment and following paragraphs keep their own alignment', () => {

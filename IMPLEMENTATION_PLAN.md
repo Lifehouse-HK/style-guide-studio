@@ -8,7 +8,7 @@ Updated 2026-09-12. The user requested a restart from zero. The previous applica
 - [x] N4: Conventional tree/form editor with explicit Add/Move/Save/Discard, recovery, diagnostics and read-only proofs. Amendment action workspace and enacted revision workspace. No editable page canvas or ribbon.
 - [x] N5: Bounded host, browser and export verification completed below; remaining qualification work is explicit and is not represented as release readiness.
 
-R1–R4 are complete. All audit implementation work is pushed; the editor and separate publication site/API are deployed, including the final reference-retention fix. The corpus is intentionally empty until genuine enacted Guides are added. Detailed current evidence is in the audit completion programme at the end; earlier entries retain their historical checks.
+P1 UK print-profile matching is active. R1–R4 are complete. All earlier audit implementation work is pushed; the editor and separate publication site/API are deployed, including the final reference-retention fix. The corpus is intentionally empty until genuine enacted Guides are added. Detailed current evidence is in the audit completion programme at the end; earlier entries retain their historical checks.
 
 ## Fresh evidence — 2026-09-12
 
@@ -123,3 +123,9 @@ Routine choices: use right-aligned latest amendment notes linking a full history
 - Initial Linux build/deploy [34690719723](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34690719723) passed all browser/PDF steps. Its actual EN/Chinese/parallel PDF artifacts were downloaded; parallel first/table pages and Chinese first page were visually inspected. Corpus deployment [34690740971](https://github.com/Lifehouse-HK/church-publication-guides/actions/runs/34690740971) passed. Final reference-retention follow-up deployment remains pending.
 
 - R4 complete (2026-09-12): final engine code `2b8ae33` passed Linux [run 34690881827](https://github.com/Lifehouse-HK/style-guide-studio/actions/runs/34690881827), including 41 tests, all five browser stories, actual PDF checks, build and Pages deployment. Corpus `c945503` pins that engine and passed [run 34690898573](https://github.com/Lifehouse-HK/church-publication-guides/actions/runs/34690898573). Both public sites return HTTP 200; the live editor reads the corpus API successfully. No synthetic church enactments were published. No implementation phase remains active; next ready action is authoring actual Guides and user evaluation of the documented human qualification items.
+
+## UK PDF typography matching — 2026-09-12
+
+- [~] P1: Retrieve and measure official original/revised PDFs; apply a shared print/reader profile, provision hanging indents, title/Part styling and running page headers. Verify actual PDFs and browser Print on representative English, Chinese and parallel specimens.
+
+- P1 local evidence: retrieved and measured Budget Responsibility Act 2024, Media Act 2024 and revised Freedom of Information Act 2000 PDFs. Shared reader/print profile, hanging numbers, Part/section styling, restrained quotations, title/date treatment, first-page branding and alternating page headers implemented. Native Print button/iframe passed; all 42 tests, type check and production build passed. Actual long EN/ZH/parallel specimens (7/6/11 pages) passed physical geometry/overflow checks and were visually inspected, including continuation headers, shared-table continuation and amendment quotations. Existing PDF destinations/tagging/70-row checks passed. Linux release verification follows.

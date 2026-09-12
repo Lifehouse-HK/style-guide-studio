@@ -26,7 +26,7 @@ test('subsections have inline labels rather than HTML headings and shared tables
   g.nodes.push(sch);
   const html = await render(g, { layout: 'parallel' });
   assert.equal((html.match(/<table>/g) ?? []).length, 1);
-  assert.match(html, /@page\{size:A4 landscape\}/);
+  assert.match(html, /@page\{size:A4 landscape;/);
   assert.match(html, /&lt;script&gt;/);
   assert.doesNotMatch(html, /<h[1-6]>\(1\)/);
   assert.match(html, /<span class="number">\(1\)<\/span>/);

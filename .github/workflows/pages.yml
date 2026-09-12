@@ -35,11 +35,13 @@ jobs:
       - run: npm test
       - run: npm run verify:browser
       - run: npm run verify:pdf
+      - run: npx tsx tools/check-print-layout.ts
       - name: Check actual PDF destinations and render QA pages
         run: |
           python3 -m venv work/qa-python
-          work/qa-python/bin/pip install pypdf==6.10.0
+          work/qa-python/bin/pip install pypdf==6.10.0 pdfplumber==0.11.9
           work/qa-python/bin/python tools/check-pdf.py
+          work/qa-python/bin/python tools/check-print-layout.py
           pdftoppm -f 1 -singlefile -scale-to 1400 -png work/pdf-check/en.pdf work/pdf-check/en-page1
           pdftoppm -f 1 -singlefile -scale-to 1400 -png work/pdf-check/parallel.pdf work/pdf-check/parallel-page1
       - name: Retain actual publication QA artifacts
@@ -47,7 +49,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: publication-qa
-          path: work/pdf-check
+          path: |
+            work/pdf-check
+            work/print-layout
       - name: Build for the GitHub Pages project path
         run: npm run build -- --base=/style-guide-studio/
       - name: Upload static editor
