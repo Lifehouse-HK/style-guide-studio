@@ -174,7 +174,23 @@ function tombstone(n: Node): Node {
   return {
     ...n,
     repealed: true,
-    blocks: isGroup(n.kind) ? undefined : [],
+    // Definition anchors and their numbered branches remain reachable after repeal.
+    blocks: isGroup(n.kind)
+      ? undefined
+      : (n.blocks ?? [])
+          .filter((b) => b.type === 'definitions')
+          .map((b) => ({
+            ...b,
+            items: b.items.map((item) => ({
+              ...item,
+              repealed: true,
+              meaning: pair(),
+              table: undefined,
+              closing: undefined,
+              children: item.children?.map(tombstone),
+            })),
+          })),
+    closing: undefined,
     children: n.children.map(tombstone),
   };
 }
@@ -357,6 +373,36 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
       // Preserve both the location and relative order of surviving identities.
       // Missing children stay at their original parent as repeal tombstones.
       const retain = (old: Node, next: Node) => {
+        for (const list of old.blocks ?? []) {
+          if (list.type !== 'definitions') continue;
+          const existing = next.blocks?.find((b) => b.id === list.id);
+          if (existing && existing.type !== 'definitions')
+            throw Error('Cannot reuse a definition list identity for another block type.');
+          if (list.master && Object.keys(g.aliases).length && (!existing || !existing.master))
+            throw Error(
+              'Amend the defined document names before removing their master definition list.',
+            );
+          const target = existing ?? { ...list, master: false, items: [] };
+          if (!existing) (next.blocks ??= []).push(target);
+          for (const item of list.items) {
+            const found = target.items.find((i) => i.id === item.id);
+            if (!found)
+              target.items.push({
+                ...structuredClone(item),
+                repealed: true,
+                meaning: pair(),
+                table: undefined,
+                closing: undefined,
+                children: item.children?.map(tombstone),
+              });
+            else {
+              // Reuse provision retention for the numbered branches of a definition.
+              const branch = { ...next, blocks: [], children: found.children ?? [] };
+              retain({ ...old, blocks: [], children: item.children ?? [] }, branch);
+              if (branch.children.length) found.children = branch.children;
+            }
+          }
+        }
         const oldIds = old.children.map((child) => child.id);
         const survivors = next.children.filter((child) => oldIds.includes(child.id));
         if (

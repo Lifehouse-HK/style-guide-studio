@@ -245,3 +245,29 @@ test('supplemental provisions remain in the amendment and cannot duplicate opera
     /Duplicate/,
   );
 });
+
+test('whole-provision substitution and repeal retain definition and branch destinations', async () => {
+  const base = source(),
+    n = base.nodes[0].children[0];
+  for (const type of ['replace-provision', 'omit-provision'] as const) {
+    const node = structuredClone(n);
+    node.blocks = node.blocks!.filter((b) => b.type !== 'definitions');
+    let a = await newAmendment(base);
+    a = await addAction(base, a, {
+      type,
+      target: n.id,
+      ...(type === 'replace-provision' ? { node } : {}),
+      clause: '3',
+      subclause: '1',
+    });
+    const result = await proposed(base, a);
+    const list = result.guide.nodes[0].children[0].blocks!.find(
+      (b) => b.type === 'definitions',
+    ) as DefinitionList;
+    assert.ok(list.items[0].repealed);
+    assert.ok(list.items[0].children![0].repealed);
+    const html = await render(result.guide, { layout: 'en' });
+    assert.ok(html.includes('id="' + definitionAnchor('master', 'team') + '"'));
+    assert.ok(html.includes('id="' + list.items[0].children![0].id + '"'));
+  }
+});

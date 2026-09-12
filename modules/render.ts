@@ -187,8 +187,8 @@ export async function render(
                         ).replaceAll('\n', '<br>');
                   return `<div class="definition-entry"${l === langs[0] ? ` id="${esc(definitionAnchor(b.id, row.documentId ? 'alias-' + row.documentId : row.id))}"` : ''}><p>“${esc(row.term[l])}”${l === 'en' ? ' ' : ''}${meaning}${!nested ? punctuation(l) : ''}</p></div>`;
                 }) +
-                (nested && !row.repealed
-                  ? `<div class="definition-branches">${row.table ? block(row.table) : ''}${row.children?.map((n) => node(n)).join('') ?? ''}${row.closing ? paired((l) => `<p>${fmt(row.closing![l], l)}${punctuation(l)}</p>`) : ''}</div>`
+                (nested
+                  ? `<div class="definition-branches">${row.table && !row.repealed ? block(row.table) : ''}${row.children?.map((n) => node(n)).join('') ?? ''}${row.closing && !row.repealed ? paired((l) => `<p>${fmt(row.closing![l], l)}${punctuation(l)}</p>`) : ''}</div>`
                   : '')
               );
             })
@@ -227,7 +227,20 @@ export async function render(
           .slice(numbered && first?.type === 'text' ? 1 : 0)
           .map(block)
           .join('');
-    return `<section${quoted ? '' : ` id="${esc(n.id)}"`} class="${isGroup(n.kind) ? 'group' : 'clause'}">${heading}${quoted ? '' : amendmentNote(n.id)}${text}${n.kind === 'appendix' ? paired((l) => `<p class="muted">${l === 'en' ? 'Informative appendix' : '資料性附錄'}</p>`) : ''}<div class="${isGroup(n.kind) || n.kind === 'schedule' || n.kind === 'appendix' ? '' : 'children'}">${n.children.map((c) => node(c, quoted)).join('')}</div>${n.closing ? paired((l) => (n.closing![l] ? `<p>${fmt(n.closing![l], l)}</p>` : '')) : ''}</section>`;
+    return `<section${quoted ? '' : ` id="${esc(n.id)}"`} class="${isGroup(n.kind) ? 'group' : 'clause'}">${heading}${quoted ? '' : amendmentNote(n.id)}${text}${
+      n.repealed && !quoted
+        ? referenceTargets(referenceGuide)
+            .filter((t) => t.owner === n.id && t.id !== n.id)
+            .map((t) => `<span id="${esc(t.id)}"></span>`)
+            .join('') +
+          (n.blocks ?? [])
+            .flatMap((b) =>
+              b.type === 'definitions' ? b.items.flatMap((i) => i.children ?? []) : [],
+            )
+            .map((c) => node(c))
+            .join('')
+        : ''
+    }${n.kind === 'appendix' ? paired((l) => `<p class="muted">${l === 'en' ? 'Informative appendix' : '資料性附錄'}</p>`) : ''}<div class="${isGroup(n.kind) || n.kind === 'schedule' || n.kind === 'appendix' ? '' : 'children'}">${n.children.map((c) => node(c, quoted)).join('')}</div>${n.closing ? paired((l) => (n.closing![l] ? `<p>${fmt(n.closing![l], l)}</p>` : '')) : ''}</section>`;
   }
   const status = paired((l) =>
     options.proposed
