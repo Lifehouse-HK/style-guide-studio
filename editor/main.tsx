@@ -1,4 +1,4 @@
-import { searchGuide, compareGuides } from '../modules/review.ts';
+import { searchGuide, searchAmendment, compareGuides } from '../modules/review.ts';
 import { printPublication } from './print.ts';
 import { ApiAmendmentDialog } from './api-amendment.tsx';
 import publicationLogo from '../assets/branding/lifehouse-hong-kong-stacked.png?inline';
@@ -85,7 +85,10 @@ function App() {
     [layout, setLayout] = useState<Layout>('en'),
     [proof, setProof] = useState(''),
     [proofKind, setProofKind] = useState('instrument'),
-    [query, setQuery] = useState('');
+    [query, setQuery] = useState(''),
+    [searchResults, setSearchResults] = useState<ReturnType<typeof searchGuide>>([]),
+    [actionToOpen, setActionToOpen] = useState(''),
+    [supplementalToOpen, setSupplementalToOpen] = useState('');
   const doc = workspace.document,
     base = workspace.source,
     editable = doc.stage === 'draft';
@@ -221,6 +224,21 @@ function App() {
       current = false;
     };
   }, [page, doc, base, layout, proofKind, workspace.catalogues]);
+  useEffect(() => {
+    let current = true;
+    if (doc.type === 'guide') setSearchResults(searchGuide(doc, query));
+    else if (base)
+      searchAmendment(doc, base, query)
+        .then((rows) => {
+          if (current) setSearchResults(rows);
+        })
+        .catch(() => {
+          if (current) setSearchResults([]);
+        });
+    return () => {
+      current = false;
+    };
+  }, [doc, base, query]);
   const all = doc.type === 'guide' ? entries(doc.nodes) : [];
   const chosen = all.find((e) => e.node.id === selected);
   const diagnostics = doc.type === 'guide' ? issues(doc, workspace.catalogues) : [];
@@ -509,7 +527,8 @@ function App() {
         )}
         {page === 'actions' && doc.type === 'amendment' && (
           <ActionWorkspace
-            key={doc.id}
+            key={doc.id + actionToOpen}
+            initialSelected={actionToOpen}
             amendment={doc}
             base={base}
             revision={revision}
@@ -526,7 +545,8 @@ function App() {
         )}
         {page === 'supplemental' && doc.type === 'amendment' && (
           <SupplementalEditor
-            key={doc.id + history.length}
+            key={doc.id + history.length + supplementalToOpen}
+            initialSelected={supplementalToOpen}
             document={doc}
             catalogues={workspace.catalogues}
             onSave={update}
@@ -548,20 +568,26 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {searchGuide(doc.type === 'guide' ? doc : amendmentGuide(doc), query).map((r) => (
+                {searchResults.map((r) => (
                   <tr key={r.target}>
                     <td>{r.location}</td>
                     <td>{r.snippet}</td>
                     <td>
                       <button
                         onClick={() => {
-                          if (r.target === 'references') navTab('references');
+                          if (r.target.startsWith('action:')) {
+                            setActionToOpen(r.target.slice(7));
+                            navTab('actions');
+                          } else if (r.target === 'references') navTab('references');
                           else if (
                             doc.type === 'guide' ||
                             ['details', 'opening', 'formula'].includes(r.target)
                           )
                             navigate(r.target);
-                          else navTab('supplemental');
+                          else {
+                            setSupplementalToOpen(r.target);
+                            navTab('supplemental');
+                          }
                         }}
                       >
                         Open
@@ -1574,6 +1600,7 @@ function EnactDialog({
   );
 }
 function ActionWorkspace({
+  initialSelected = '',
   amendment: a,
   base,
   revision,
@@ -1585,6 +1612,7 @@ function ActionWorkspace({
   onDirty,
   catalogues,
 }: {
+  initialSelected?: string;
   amendment: Amendment;
   base?: Guide;
   revision: Revision | null;
@@ -1601,7 +1629,7 @@ function ActionWorkspace({
     setFormDirty(b);
     onDirty(b);
   };
-  const [selected, setSelected] = useState(''),
+  const [selected, setSelected] = useState(initialSelected),
     [adding, setAdding] = useState(false),
     [before, setBefore] = useState<Guide | null>(null),
     [clauses, setClauses] = useState<any[]>([]);
@@ -2398,17 +2426,24 @@ function ActionForm({
   );
 }
 function SupplementalEditor({
+  initialSelected = '',
   document: doc,
   catalogues,
   onSave,
   onDirty,
 }: {
+  initialSelected?: string;
   document: Amendment;
   catalogues: Catalogue[];
   onSave: (d: Document) => void;
   onDirty: (b: boolean) => void;
 }) {
-  const [draft, setDraft] = useState<Node | null>(null),
+  const [draft, setDraft] = useState<Node | null>(() =>
+      structuredClone(
+        doc.supplemental?.find((n) => entries([n]).some((e) => e.node.id === initialSelected)) ??
+          null,
+      ),
+    ),
     [kind, setKind] = useState<'section' | 'schedule'>('section'),
     [label, setLabel] = useState(''),
     [error, setError] = useState(''),

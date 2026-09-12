@@ -1,13 +1,6 @@
-import {
-  entries,
-  address,
-  languages,
-  type Guide,
-  type Node,
-  type Block,
-  canonical,
-} from './document.ts';
+import { entries, address, type Guide, type Node, type Block, canonical } from './document.ts';
 import { richPlain } from './rich-text.ts';
+import { generate, amendmentGuide } from './amendments.ts';
 export function blockText(b: Block): string {
   if (b.type === 'table')
     return [b.caption.en, b.caption.zh, ...b.rows.map((r) => r.join(' | '))].join('\n');
@@ -87,6 +80,14 @@ export function searchGuide(g: Guide, query: string) {
       return { ...r, snippet: r.text.slice(Math.max(0, at - 50), at + q.length + 150) };
     });
 }
+const displayValue = (value: any): string =>
+  value == null
+    ? ''
+    : typeof value === 'string'
+      ? value
+      : Array.isArray(value)
+        ? value.map(displayValue).join('\n')
+        : Object.values(value).map(displayValue).join('\n');
 export function compareGuides(before: Guide, after: Guide) {
   const a = new Map(entries(before.nodes).map((e) => [e.node.id, e])),
     b = new Map(entries(after.nodes).map((e) => [e.node.id, e]));
@@ -123,8 +124,55 @@ export function compareGuides(before: Guide, after: Guide) {
         id: field,
         location: field,
         status: 'changed',
-        before: JSON.stringify(before[field] ?? {}, null, 2),
-        after: JSON.stringify(after[field] ?? {}, null, 2),
+        before: displayValue(before[field]),
+        after: displayValue(after[field]),
       });
   return result;
+}
+
+export async function searchAmendment(
+  a: import('./amendments.ts').Amendment,
+  base: Guide,
+  query: string,
+) {
+  const clauses = await generate(base, a),
+    q = query.trim().toLowerCase();
+  if (!q) return [];
+  const rows = searchGuide(amendmentGuide(a, clauses), query).filter(
+    (r) => !r.target.startsWith('clause-'),
+  );
+  for (const c of clauses)
+    for (const item of c.items) {
+      const text = [
+        c.heading.en,
+        c.heading.zh,
+        item.text.en,
+        item.text.zh,
+        item.definition
+          ? blockText({
+              id: 'search',
+              type: 'definitions',
+              master: false,
+              items: [item.definition],
+            })
+          : '',
+        item.table ? blockText({ ...item.table, id: 'search', type: 'table' }) : '',
+        item.payload
+          ? entries([item.payload])
+              .map((e) => nodeText(e.node))
+              .join('\n')
+          : '',
+      ].join('\n');
+      if (text.toLowerCase().includes(q)) {
+        const action = a.actions.find((op) => op.clause === c.label && op.subclause === item.label);
+        const at = text.toLowerCase().indexOf(q);
+        rows.push({
+          target: 'action:' + action?.id,
+          location: `Amending clause ${c.label}${item.label ? '(' + item.label + ')' : ''}`,
+          text,
+          snippet: text.slice(Math.max(0, at - 50), at + q.length + 150),
+        });
+      }
+    }
+  return rows;
 }
