@@ -1,3 +1,4 @@
+import { definitionRows, definedDocument } from '../modules/definitions.ts';
 import { richPlain } from '../modules/rich-text.ts';
 import { ParagraphInput, type ParagraphInputHandle } from './paragraph-input.tsx';
 import { alignments, paragraphRange, type Alignment } from '../modules/text-formatting.ts';
@@ -15,6 +16,7 @@ import {
   pair,
   textBlock,
   type Block,
+  type DefinitionList,
   type Guide,
   type Kind,
   type Node,
@@ -223,7 +225,9 @@ function TextField({
   lang,
   align,
   html,
+  allowAlignment = true,
 }: {
+  allowAlignment?: boolean;
   html?: boolean;
   label: string;
   value: string;
@@ -271,21 +275,22 @@ function TextField({
         >
           <Icon name="type-underline" />
         </button>
-        {(['left', 'center', 'right'] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-label={`Align ${option}`}
-            aria-pressed={(() => {
-              const [a, b] = paragraphRange(html ? richPlain(value) : value, ...selection);
-              return align.slice(a, b + 1).every((v) => v === option);
-            })()}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => ref.current!.align(option)}
-          >
-            <Icon name={`text-${option}`} />
-          </button>
-        ))}
+        {allowAlignment &&
+          (['left', 'center', 'right'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-label={`Align ${option}`}
+              aria-pressed={(() => {
+                const [a, b] = paragraphRange(html ? richPlain(value) : value, ...selection);
+                return align.slice(a, b + 1).every((v) => v === option);
+              })()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => ref.current!.align(option)}
+            >
+              <Icon name={`text-${option}`} />
+            </button>
+          ))}
         {(
           [
             ['Hyphen', '-'],
@@ -317,7 +322,9 @@ function TextField({
         </button>
       </div>
       <small className="hint">
-        Alignment applies to the current or selected paragraphs. Enter starts a paragraph.
+        {allowAlignment
+          ? 'Alignment applies to the current or selected paragraphs. Enter starts a paragraph.'
+          : 'Enter the meaning, including “means”, “includes” or equivalent wording. Final punctuation is generated.'}
       </small>
       {picker && (
         <div className="reference-picker">
@@ -366,6 +373,140 @@ function TextField({
         onChange={onChange}
       />
     </div>
+  );
+}
+export function DefinitionFields({
+  value,
+  onChange,
+  guide,
+  catalogues,
+  siblingMaster = false,
+}: {
+  siblingMaster?: boolean;
+  value: DefinitionList;
+  onChange: (value: DefinitionList) => void;
+  guide: Guide;
+  catalogues: Catalogue[];
+}) {
+  const [selected, setSelected] = useState('');
+  const language = guide.mode === 'zh' ? 'zh' : 'en';
+  const rows = definitionRows(value, guide, language);
+  const item = value.items.find((i) => i.id === selected);
+  const otherMaster = entries(guide.nodes).find(
+    (e) =>
+      ![...e.ancestors, e.node].some((n) => n.repealed) &&
+      e.node.blocks?.some((b) => b.type === 'definitions' && b.master && b.id !== value.id),
+  );
+  const update = (next: typeof item) =>
+    next && onChange({ ...value, items: value.items.map((i) => (i.id === next.id ? next : i)) });
+  return (
+    <>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={value.master}
+          disabled={!value.master && (!!otherMaster || siblingMaster)}
+          onChange={(e) => onChange({ ...value, master: e.target.checked })}
+        />
+        Master definition list
+      </label>
+      <p className="hint">
+        {siblingMaster
+          ? 'Another block in this provision is already the master list.'
+          : otherMaster
+            ? `The master list is already in ${names[otherMaster.node.kind].en} ${otherMaster.node.label}.`
+            : 'Only one master list is allowed. It automatically includes all defined document names from References.'}{' '}
+        Ordinary lists remain local; their terms do not change generated reference names.
+      </p>
+      <p className="hint">
+        Sorted lexicographically; initial lowercase “the ” is ignored, capitalised “The” is
+        retained. An Order by key overrides this rule. Parallel documents align entries using
+        English order.
+      </p>
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Term</th>
+            <th>Source</th>
+            <th>Order by</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id} className={row.id === selected ? 'selected-row' : ''}>
+              <td>{row.term[language] || '(New term)'}</td>
+              <td>{row.documentId ? 'References (automatic)' : 'This list'}</td>
+              <td>{row.orderBy?.[language] || 'Automatic'}</td>
+              <td>
+                {row.documentId ? (
+                  definedDocument(row, guide, language, catalogues).title
+                ) : (
+                  <button type="button" onClick={() => setSelected(row.id)}>
+                    Edit term
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="toolbar">
+        <button
+          type="button"
+          onClick={() => {
+            const next = { id: id(), term: pair(), meaning: pair() };
+            onChange({ ...value, items: [...value.items, next] });
+            setSelected(next.id);
+          }}
+        >
+          Add term
+        </button>
+        {item && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange({ ...value, items: value.items.filter((i) => i.id !== item.id) });
+              setSelected('');
+            }}
+          >
+            Remove term
+          </button>
+        )}
+      </div>
+      {item && (
+        <>
+          <PairFields
+            label="Defined term"
+            value={item.term}
+            mode={guide.mode}
+            onChange={(term) => update({ ...item, term })}
+          />
+          <PairFields
+            label="Order by (optional)"
+            value={item.orderBy ?? pair()}
+            mode={guide.mode}
+            onChange={(orderBy) => update({ ...item, orderBy })}
+          />
+          {languages(guide).map((l) => (
+            <TextField
+              key={item.id + l}
+              label={l === 'en' ? 'English meaning' : '繁體中文釋義'}
+              value={item.meaning[l]}
+              html
+              lang={l}
+              align={item.meaning[l].split('\n').map(() => 'left')}
+              allowAlignment={false}
+              onChange={(meaning) =>
+                update({ ...item, meaning: { ...item.meaning, [l]: meaning } })
+              }
+              guide={guide}
+              catalogues={catalogues}
+            />
+          ))}
+        </>
+      )}
+    </>
   );
 }
 export function NodeFields({
@@ -424,13 +565,17 @@ export function NodeFields({
                 onClick={() => setActive(b.id)}
               >
                 {i + 1}.{' '}
-                {b.type === 'table'
-                  ? 'Shared table'
-                  : b.type === 'quote'
-                    ? 'Quotation'
-                    : b.type === 'note'
-                      ? 'Note'
-                      : 'Text'}
+                {b.type === 'definitions'
+                  ? b.master
+                    ? 'Master definitions'
+                    : 'Definitions'
+                  : b.type === 'table'
+                    ? 'Shared table'
+                    : b.type === 'quote'
+                      ? 'Quotation'
+                      : b.type === 'note'
+                        ? 'Note'
+                        : 'Text'}
               </button>
             ))}
           </div>
@@ -444,23 +589,26 @@ export function NodeFields({
               <option value="quote">Quotation</option>
               <option value="note">Note</option>
               <option value="table">Shared table</option>
+              <option value="definitions">Definition list</option>
             </select>
             <button
               type="button"
               onClick={() => {
                 const next: Block =
-                  contentType === 'table'
-                    ? {
-                        id: id(),
-                        type: 'table',
-                        caption: pair(),
-                        numbered: false,
-                        rows: [
-                          ['', ''],
-                          ['', ''],
-                        ],
-                      }
-                    : { ...textBlock(), type: contentType };
+                  contentType === 'definitions'
+                    ? { id: id(), type: 'definitions', master: false, items: [] }
+                    : contentType === 'table'
+                      ? {
+                          id: id(),
+                          type: 'table',
+                          caption: pair(),
+                          numbered: false,
+                          rows: [
+                            ['', ''],
+                            ['', ''],
+                          ],
+                        }
+                      : { ...textBlock(), type: contentType };
                 onChange({ ...value, blocks: [...(value.blocks ?? []), next] });
                 setActive(next.id);
               }}
@@ -495,7 +643,18 @@ export function NodeFields({
             )}
           </div>
           {b &&
-            (b.type === 'table' ? (
+            (b.type === 'definitions' ? (
+              <DefinitionFields
+                key={b.id}
+                value={b}
+                siblingMaster={value.blocks?.some(
+                  (x) => x.type === 'definitions' && x.master && x.id !== b.id,
+                )}
+                onChange={updateBlock}
+                guide={guide}
+                catalogues={catalogues}
+              />
+            ) : b.type === 'table' ? (
               <TableFields value={b} onChange={updateBlock} />
             ) : (
               <div className={'paired-fields ' + (guide.mode === 'parallel' ? 'two' : '')}>

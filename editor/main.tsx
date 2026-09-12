@@ -1230,11 +1230,15 @@ function NodeEditor({
                       c.heading?.[guide.mode === 'zh' ? 'zh' : 'en'] ||
                       (c.blocks ?? [])
                         .map((b) =>
-                          b.type === 'table'
-                            ? b.caption[guide.mode === 'zh' ? 'zh' : 'en']
-                            : b.textFormat?.[guide.mode === 'zh' ? 'zh' : 'en'] === 'html'
-                              ? richPlain(b.text[guide.mode === 'zh' ? 'zh' : 'en'])
-                              : b.text[guide.mode === 'zh' ? 'zh' : 'en'],
+                          b.type === 'definitions'
+                            ? b.items
+                                .map((i) => i.term[guide.mode === 'zh' ? 'zh' : 'en'])
+                                .join('; ')
+                            : b.type === 'table'
+                              ? b.caption[guide.mode === 'zh' ? 'zh' : 'en']
+                              : b.textFormat?.[guide.mode === 'zh' ? 'zh' : 'en'] === 'html'
+                                ? richPlain(b.text[guide.mode === 'zh' ? 'zh' : 'en'])
+                                : b.text[guide.mode === 'zh' ? 'zh' : 'en'],
                         )
                         .join(' ')
                     ).slice(0, 120) || 'No text yet'}
@@ -1893,21 +1897,25 @@ function ActionForm({
               <option value="">Select block</option>
               {target.node.blocks
                 ?.filter((b) =>
-                  draft.type === 'replace-table' ? b.type === 'table' : b.type !== 'table',
+                  draft.type === 'replace-table'
+                    ? b.type === 'table'
+                    : b.type !== 'table' && b.type !== 'definitions',
                 )
                 .map((b, i) => (
                   <option key={b.id} value={b.id}>
                     {i + 1}.{' '}
-                    {b.type === 'table'
-                      ? b.caption.en || 'Table'
-                      : (b.textFormat?.en === 'html' ? richPlain(b.text.en) : b.text.en).slice(
-                          0,
-                          70,
-                        ) ||
-                        (b.textFormat?.zh === 'html' ? richPlain(b.text.zh) : b.text.zh).slice(
-                          0,
-                          40,
-                        )}
+                    {b.type === 'definitions'
+                      ? 'Definition list (substitute its containing provision)'
+                      : b.type === 'table'
+                        ? b.caption.en || 'Table'
+                        : (b.textFormat?.en === 'html' ? richPlain(b.text.en) : b.text.en).slice(
+                            0,
+                            70,
+                          ) ||
+                          (b.textFormat?.zh === 'html' ? richPlain(b.text.zh) : b.text.zh).slice(
+                            0,
+                            40,
+                          )}
                   </option>
                 ))}
             </select>
@@ -2116,7 +2124,8 @@ function References({
   const [url, setUrl] = useState(''),
     [busy, setBusy] = useState(false),
     [aliasId, setAliasId] = useState(''),
-    [alias, setAlias] = useState(pair());
+    [alias, setAlias] = useState(pair()),
+    [aliasOrder, setAliasOrder] = useState(pair());
   return (
     <section className="full">
       <h1>Published references & short names</h1>
@@ -2186,7 +2195,20 @@ function References({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          onSave({ ...doc, aliases: { ...doc.aliases, [aliasId]: alias } });
+          const published = catalogues.flatMap((c) => c.documents).find((d) => d.id === aliasId);
+          const titles = published?.titles ?? doc.aliasDetails?.[aliasId]?.titles;
+          if (!titles) {
+            onError(Error('Load the reference catalogue to save this document’s formal titles.'));
+            return;
+          }
+          onSave({
+            ...doc,
+            aliases: { ...doc.aliases, [aliasId]: alias },
+            aliasDetails: {
+              ...doc.aliasDetails,
+              [aliasId]: { titles: { ...titles }, orderBy: aliasOrder },
+            },
+          });
         }}
       >
         <fieldset disabled={doc.stage === 'enacted'}>
@@ -2197,6 +2219,7 @@ function References({
               onChange={(e) => {
                 setAliasId(e.target.value);
                 setAlias(doc.aliases[e.target.value] ?? pair());
+                setAliasOrder(doc.aliasDetails?.[e.target.value]?.orderBy ?? pair());
               }}
             >
               <option value="">Select published document</option>
@@ -2210,8 +2233,29 @@ function References({
             </select>
           </Field>
           <PairFields label="Short name" value={alias} onChange={setAlias} />
+          <PairFields label="Order by (optional)" value={aliasOrder} onChange={setAliasOrder} />
+          <p className="hint">
+            Defined names appear automatically in the master definition list, if one is selected.
+            Ordinary definition lists remain independent. Saved formal titles travel with the
+            project.
+          </p>
           <button className="primary" disabled={!aliasId}>
             Save defined name
+          </button>
+          <button
+            type="button"
+            disabled={!doc.aliases[aliasId]}
+            onClick={() => {
+              const aliases = { ...doc.aliases },
+                aliasDetails = { ...doc.aliasDetails };
+              delete aliases[aliasId];
+              delete aliasDetails[aliasId];
+              onSave({ ...doc, aliases, aliasDetails });
+              setAlias(pair());
+              setAliasOrder(pair());
+            }}
+          >
+            Remove defined name
           </button>
         </fieldset>
       </form>

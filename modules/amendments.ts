@@ -219,7 +219,7 @@ export async function applyAction(state: Revision, a: Action, verify = true): Pr
     }
     case 'replace-text': {
       const b = n.blocks?.find((b) => b.id === a.block);
-      if (!b || b.type === 'table' || !a.language || !a.find)
+      if (!b || b.type === 'table' || b.type === 'definitions' || !a.language || !a.find)
         throw Error('Choose a text block, language and exact text.');
       const text =
           b.textFormat?.[a.language] === 'html'

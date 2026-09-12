@@ -9,7 +9,7 @@ import { exportXml, importXml } from '../modules/xml.ts';
 test('restricted HTML renders formatting and literal punctuation without Markdown interpretation', async () => {
   const g = specimen();
   const block = g.nodes[0].children[0].blocks![0];
-  if (block.type === 'table') throw Error();
+  if (block.type === 'table' || block.type === 'definitions') throw Error();
   block.textFormat = { en: 'html' };
   block.text.en = '<strong>Bold <em>and italic</em></strong> *literal* &lt;tag&gt; &amp; &amp;lt;';
   const html = await render(g, { layout: 'en' });
@@ -35,7 +35,7 @@ test('HTML source text replacement targets visible characters and preserves surr
   const g = specimen();
   const n = g.nodes[0].children[0],
     b = n.blocks![0];
-  if (b.type === 'table') throw Error();
+  if (b.type === 'table' || b.type === 'definitions') throw Error();
   b.textFormat = { en: 'html' };
   b.text.en = '<strong>A &lt; B</strong> and C';
   const base = enact(g, { date: '2026-01-01', effective: '2026-01-01', authority: 'Test' });
@@ -51,7 +51,7 @@ test('HTML source text replacement targets visible characters and preserves surr
     subclause: '1',
   });
   const result = (await proposed(base, a)).guide.nodes[0].children[0].blocks![0];
-  if (result.type === 'table') throw Error();
+  if (result.type === 'table' || result.type === 'definitions') throw Error();
   assert.equal(richPlain(result.text.en), 'A & D and C');
   assert.match(result.text.en, /<strong>&amp; D<\/strong>/);
   const multiline = replaceRich('<strong>A B</strong>', 'B', 'C\nD');

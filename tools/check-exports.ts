@@ -7,7 +7,7 @@ await mkdir('work/fresh-check', { recursive: true });
 const g = specimen(),
   sch = newNode('schedule', '1');
 const opening = g.nodes[0].children[0].blocks![0];
-if (opening.type !== 'table') {
+if (opening.type !== 'table' && opening.type !== 'definitions') {
   opening.textFormat = { en: 'html', zh: 'html' };
   opening.text = pair(
     'Use <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <code>*literal*</code>; &lt; &amp; &amp;lt;.',

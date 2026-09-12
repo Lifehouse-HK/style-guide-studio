@@ -112,7 +112,10 @@ export function resolve(
     };
   const title = g.aliases[doc]?.[lang] || d.titles[lang];
   return {
-    label: lang === 'en' ? `${t.label.en} of the ${title}` : `《${title}》${t.label.zh}`,
+    label:
+      lang === 'en'
+        ? `${t.label.en} of ${/^the\s/i.test(title) ? title : 'the ' + title}`
+        : `《${title}》${t.label.zh}`,
     href: (pdf ? d.pdf : d.html)[lang] + '#' + encodeURIComponent(target),
     ...(d.status === 'repealed' || t.repealed ? { warning: 'Repealed target' } : {}),
   };

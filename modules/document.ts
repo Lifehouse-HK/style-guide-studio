@@ -56,7 +56,14 @@ export type Table = {
   numbered: boolean;
   rows: string[][];
 };
-export type Block = TextBlock | Table;
+export type Definition = { id: string; term: Pair; meaning: Pair; orderBy?: Pair };
+export type DefinitionList = {
+  id: string;
+  type: 'definitions';
+  master: boolean;
+  items: Definition[];
+};
+export type Block = TextBlock | Table | DefinitionList;
 export type Node = {
   id: string;
   kind: Kind;
@@ -68,6 +75,34 @@ export type Node = {
   repealed?: boolean;
 };
 const blockSchema = z.union([
+  z
+    .object({
+      id: z.string().min(1),
+      type: z.literal('definitions'),
+      master: z.boolean(),
+      items: z.array(
+        z
+          .object({
+            id: z.string().min(1),
+            term: paired,
+            meaning: paired,
+            orderBy: paired.optional(),
+          })
+          .strict()
+          .superRefine((item, ctx) => {
+            for (const l of ['en', 'zh'] as const)
+              try {
+                richPlain(item.meaning[l]);
+              } catch {
+                ctx.addIssue({
+                  code: 'custom',
+                  message: 'Invalid restricted HTML in definition meaning.',
+                });
+              }
+          }),
+      ),
+    })
+    .strict(),
   z
     .object({
       id: z.string().min(1),
@@ -153,6 +188,9 @@ export const commonShape = {
     .strict(),
   enactment: enactmentSchema.optional(),
   aliases: z.record(z.string(), paired),
+  aliasDetails: z
+    .record(z.string(), z.object({ titles: paired, orderBy: paired.optional() }).strict())
+    .optional(),
 };
 export const guideSchema = z
   .object({
@@ -165,7 +203,18 @@ export const guideSchema = z
       .optional(),
   })
   .strict()
-  .superRefine(checkEnactment);
+  .superRefine(checkEnactment)
+  .superRefine((g, ctx) => {
+    const masters = entries(g.nodes)
+      .filter((e) => ![...e.ancestors, e.node].some((n) => n.repealed))
+      .flatMap((e) => e.node.blocks ?? [])
+      .filter((b) => b.type === 'definitions' && b.master);
+    if (masters.length > 1)
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Only one master definition list is allowed per document.',
+      });
+  });
 export type Guide = z.infer<typeof guideSchema>;
 export const id = () => 'n' + crypto.randomUUID().replaceAll('-', '');
 export const languages = (p: { mode: 'en' | 'zh' | 'parallel' }): Language[] =>
@@ -386,6 +435,7 @@ export function issues(g: Guide): Issue[] {
         for (const b of n.blocks ?? [])
           if (
             b.type !== 'table' &&
+            b.type !== 'definitions' &&
             !(b.textFormat?.[l] === 'html' ? richPlain(b.text[l]) : b.text[l]).trim()
           )
             add(
@@ -397,6 +447,41 @@ export function issues(g: Guide): Issue[] {
       for (const b of n.blocks ?? []) {
         if (seen.has(b.id)) add(n.id, 'identity', 'Duplicate block identity.');
         seen.add(b.id);
+        if (b.type === 'definitions') {
+          const terms = new Map<Language, Set<string>>(languages(g).map((l) => [l, new Set()]));
+          if (!b.items.length && !(b.master && Object.keys(g.aliases).length))
+            add(n.id, 'definitions', 'Add at least one definition.');
+          for (const item of b.items) {
+            if (seen.has(item.id)) add(n.id, 'identity', 'Duplicate definition identity.');
+            seen.add(item.id);
+            for (const l of languages(g)) {
+              if (!item.term[l].trim() || !richPlain(item.meaning[l]).trim())
+                add(n.id, 'definitions', `Complete the ${l} term and meaning.`);
+              for (const m of item.meaning[l].matchAll(/\[\[#([^\]]+)\]\]/g))
+                if (!entries(g.nodes).some((x) => x.node.id === m[1]))
+                  add(n.id, 'reference', `Missing local reference ${m[1]}.`);
+            }
+          }
+          for (const term of [
+            ...b.items.map((i) => i.term),
+            ...(b.master ? Object.values(g.aliases) : []),
+          ])
+            for (const l of languages(g)) {
+              const key = term[l].trim().normalize('NFC').toLowerCase();
+              if (terms.get(l)!.has(key))
+                add(n.id, 'definitions', `Duplicate ${l} definition term “${term[l]}”.`);
+              terms.get(l)!.add(key);
+            }
+          if (b.master)
+            for (const [target, term] of Object.entries(g.aliases))
+              for (const l of languages(g))
+                if (!term[l].trim() || !g.aliasDetails?.[target]?.titles[l].trim())
+                  add(
+                    n.id,
+                    'definitions',
+                    `Complete the ${l} short name and save its formal title in References.`,
+                  );
+        }
         if (b.type === 'table' && b.rows.some((r) => r.length !== b.rows[0].length))
           add(n.id, 'table', 'Every table row must have the same number of columns.');
       }
@@ -404,7 +489,7 @@ export function issues(g: Guide): Issue[] {
   }
   for (const e of entries(g.nodes))
     for (const b of e.node.blocks ?? [])
-      if (b.type !== 'table')
+      if (b.type !== 'table' && b.type !== 'definitions')
         for (const l of languages(g))
           for (const m of b.text[l].matchAll(/\[\[#([^\]]+)\]\]/g))
             if (!entries(g.nodes).some((x) => x.node.id === m[1]))

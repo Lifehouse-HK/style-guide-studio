@@ -1,3 +1,4 @@
+import { definitionRows, definedDocument } from './definitions.ts';
 import { parseRich } from './rich-text.ts';
 import { DOMParser } from '@xmldom/xmldom';
 import {
@@ -26,24 +27,44 @@ export async function exportXml(
   const block = (b: Block) =>
     b.type === 'table'
       ? `<table eId="${e(b.id)}"><caption>${e(b.caption[language])}</caption>${b.rows.map((r, i) => `<tr>${r.map((c) => `<${i ? 'td' : 'th'}>${p(c)}</${i ? 'td' : 'th'}>`).join('')}</tr>`).join('')}</table>`
-      : b.textFormat?.[language] === 'html'
-        ? b.text[language]
-            .split('\n')
-            .map(
-              (line) =>
-                '<p>' +
-                parseRich(line)
-                  .map((run) =>
-                    run.marks.reduceRight((content, mark) => {
-                      const tag = { strong: 'b', em: 'i', u: 'u', code: 'span' }[mark];
-                      return `<${tag}>${content}</${tag}>`;
-                    }, e(run.text)),
-                  )
-                  .join('') +
-                '</p>',
-            )
-            .join('')
-        : p(b.text[language]);
+      : b.type === 'definitions'
+        ? `<blockList>${definitionRows(b, d.type === 'guide' ? d : workspace.source!, language)
+            .map((row, i, rows) => {
+              const guide = d.type === 'guide' ? d : workspace.source!;
+              const target = row.documentId
+                ? definedDocument(row, guide, language, workspace.catalogues)
+                : undefined;
+              const meaning = target
+                ? e((language === 'en' ? 'means ' : '指') + target.title)
+                : parseRich(row.meaning[language])
+                    .map((run) =>
+                      run.marks.reduceRight((text, mark) => {
+                        const tag = { strong: 'b', em: 'i', u: 'u', code: 'span' }[mark];
+                        return `<${tag}>${text}</${tag}>`;
+                      }, e(run.text)),
+                    )
+                    .join('');
+              return `<item><p>“<def>${e(row.term[language])}</def>”${language === 'en' ? ' ' : ''}${meaning}${i === rows.length - 1 ? (language === 'en' ? '.' : '。') : language === 'en' ? ';' : '；'}</p></item>`;
+            })
+            .join('')}</blockList>`
+        : b.textFormat?.[language] === 'html'
+          ? b.text[language]
+              .split('\n')
+              .map(
+                (line) =>
+                  '<p>' +
+                  parseRich(line)
+                    .map((run) =>
+                      run.marks.reduceRight((content, mark) => {
+                        const tag = { strong: 'b', em: 'i', u: 'u', code: 'span' }[mark];
+                        return `<${tag}>${content}</${tag}>`;
+                      }, e(run.text)),
+                    )
+                    .join('') +
+                  '</p>',
+              )
+              .join('')
+          : p(b.text[language]);
   function node(n: Node, prefix = ''): string {
     const tag =
       (

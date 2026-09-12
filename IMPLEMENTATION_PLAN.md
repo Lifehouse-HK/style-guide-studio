@@ -8,7 +8,7 @@ Updated 2026-09-12. The user requested a restart from zero. The previous applica
 - [x] N4: Conventional tree/form editor with explicit Add/Move/Save/Discard, recovery, diagnostics and read-only proofs. Amendment action workspace and enacted revision workspace. No editable page canvas or ribbon.
 - [x] N5: Bounded host, browser and export verification completed below; remaining qualification work is explicit and is not represented as release readiness.
 
-No implementation phase is active. The editor is live on GitHub Pages. Next ready action is user evaluation of the replacement editor, followed by the qualification items below. The corpus repository and publication/API deployment remain outside this implementation; the editor is deployed separately under D1.
+No implementation phase is active. Local definition-list work is complete; the feature audit follows below. The previously deployed editor is live on GitHub Pages. Next ready action is user evaluation of the replacement editor, followed by the qualification items below. The corpus repository and publication/API deployment remain outside this implementation; the editor is deployed separately under D1.
 
 ## Fresh evidence — 2026-09-12
 
@@ -77,3 +77,11 @@ No implementation phase is active. The editor is live on GitHub Pages. Next read
 - [x] F7: Automatically introduce paragraph and numbered preambles with WHEREAS / 鑑於 in the shared proof/HTML/PDF renderer. English WHEREAS and BE IT ENACTED use small caps. Already-entered preamble openings are not duplicated; source text and the customisable formula remain unchanged. The editor explains that openings are generated.
 - Fresh type check, all 24 tests and production build passed. Chromium verified both preamble formats and computed small-cap styling; the parallel numbered proof was visually inspected. No PDF file was generated for this change; the PDF adapter consumes the same HTML/CSS.
 - Completed locally; this fix has not been pushed or deployed. No active implementation phase.
+
+## Local and master definitions — 2026-09-12
+
+- [x] F8: Add unnumbered definition blocks to provision forms and all output formats. Preserve local lists independently of References; permit one master merging defined document names. Add paired ordering overrides for terms and aliases, deterministic article-sensitive lexical sorting, saved formal-title snapshots and validation. The resolver no longer duplicates “the” in English short-name links.
+- Fresh type check, all 28 tests and production build passed. Regression coverage includes sorting/overrides, master uniqueness, duplicate and missing definitions, safe rich text, JSON/XML round trip, bilingual rendering and whole-provision amendment replay.
+- `npx tsx tools/check-definitions.ts` passed the actual local browser workflow: create a reference alias, add a master and four terms, verify sort/override, retain an independent subsection list, disallow a second master, save/reopenable source and parallel proof. No browser page errors.
+- English and Chinese XML specimens passed `xmllint --schema` against the official OASIS schema. All three PDFs were generated through the application adapter; English/Chinese first pages and both parallel pages were visually inspected. Indented wrapping and bilingual row alignment passed. This remains local macOS verification, not Linux or remote-PDF-destination qualification.
+- This feature and the earlier preamble fix remain local, not pushed/deployed.
