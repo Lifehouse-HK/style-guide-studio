@@ -98,3 +98,32 @@ export function replaceRich(text: string, find: string, replacement: string): st
   }
   return serializeRich(output);
 }
+
+/** References are recognised across inline mark boundaries; literal-code tokens stay literal. */
+export function referenceRuns(runs: Run[]): { text: string; marks: Mark[]; key?: string }[] {
+  const text = runs.map((r) => r.text).join('');
+  const spans = runs.map((r, i) => ({
+    ...r,
+    start: runs.slice(0, i).reduce((n, r) => n + r.text.length, 0),
+  }));
+  const result: { text: string; marks: Mark[]; key?: string }[] = [];
+  const append = (start: number, end: number) => {
+    for (const r of spans) {
+      const a = Math.max(start, r.start),
+        b = Math.min(end, r.start + r.text.length);
+      if (a < b) result.push({ text: text.slice(a, b), marks: r.marks });
+    }
+  };
+  let at = 0;
+  for (const match of text.matchAll(/\[\[([^\]\n]+)\]\]/g)) {
+    const start = match.index!,
+      end = start + match[0].length;
+    const overlaps = spans.filter((r) => r.start < end && r.start + r.text.length > start);
+    if (overlaps.some((r) => r.marks.includes('code'))) continue;
+    append(at, start);
+    result.push({ text: match[0], key: match[1], marks: overlaps[0]?.marks ?? [] });
+    at = end;
+  }
+  append(at, text.length);
+  return result;
+}

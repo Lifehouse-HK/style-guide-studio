@@ -91,3 +91,16 @@ No implementation phase is active. Local definition-list work and the requested 
 - [x] A0: Audit the remaining agreed capabilities after F8. Findings and acceptance criteria are recorded in [the feature audit](docs/feature-audit-2026-09-12.md), with source-inspection findings distinguished from host reproductions and qualification gaps.
 - Host probes confirmed missing external-reference enactment validation, rich-format reference-token breakage, empty amendment formula acceptance and divergent generated XML preamble openings. Browser Print uses HTML-link destinations by source inspection. These defects are recorded, not fixed as part of the requested audit.
 - Next recommended work: reference/enactment/PDF-print correctness (A1–A4), followed by definition and principal-alias amendment operations (A7–A8). No implementation phase is active; no push/deployment performed.
+
+## Audit completion programme — 2026-09-12
+
+User authorised implementation of all audit follow-ups and push. Preserve deliberate exclusions (enacted relocation/renumbering/splitting/merging, generic XML import and removed structures).
+
+- [~] R1: Reference integrity, PDF print destinations, front-matter validation/projection and failed-save recovery (A1–A6, A13–A14).
+- [ ] R2: Definition/alias and word/front-matter amendment lifecycle; nested definition content; supplemental amendment provisions (A7–A12).
+- [ ] R3: Amendment annotations, search/comparison, publication builder and separate corpus repository (A15–A16, A20).
+- [ ] R4: Linux/browser/PDF CI, format compatibility and bounded accessibility/IME checks; push and deploy (A17–A19).
+
+Routine choices: use right-aligned latest amendment notes linking a full history, deterministic source-profile version compatibility, free serif font fallbacks on Linux, and a separate `church-publication-guides` corpus repository. Actual team enactments are not invented; an empty corpus can be deployed until genuine enacted documents are supplied.
+
+- A2 complete: reference parsing spans rich-text runs, preserving formatting and literal-code examples. Type check and 3 focused rich-text tests passed (2026-09-12).

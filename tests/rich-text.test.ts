@@ -59,3 +59,15 @@ test('HTML source text replacement targets visible characters and preserves surr
   assert.equal(richPlain(multiline), 'A C\nD');
   assert.equal(richPlain(serializeRich([{ text: '* ** < & &lt;', marks: [] }])), '* ** < & &lt;');
 });
+
+test('reference tokens survive rich mark boundaries while code examples remain literal', async () => {
+  const g = specimen(),
+    n = g.nodes[0].children[0],
+    b = n.blocks![0];
+  if (b.type !== 'text') throw Error();
+  b.textFormat = { en: 'html' };
+  b.text.en = `See [[#<strong>${n.id}</strong>]] and <code>[[#${n.id}]]</code>.`;
+  const html = await render(g, { layout: 'en' });
+  assert.match(html, new RegExp('See <a href="#' + n.id + '">section 1</a>'));
+  assert.match(html, new RegExp('<code>\\[\\[#' + n.id + '\\]\\]</code>'));
+});

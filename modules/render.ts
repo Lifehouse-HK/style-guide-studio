@@ -1,5 +1,5 @@
 import { definitionRows, definedDocument } from './definitions.ts';
-import { parseRich } from './rich-text.ts';
+import { parseRich, referenceRuns } from './rich-text.ts';
 import { alignments } from './text-formatting.ts';
 import {
   address,
@@ -67,16 +67,15 @@ export function richInline(
   catalogues: Catalogue[] = [],
   pdf = false,
 ): string {
-  return parseRich(text)
+  return referenceRuns(parseRich(text))
     .map((run) => {
       let content = escape(run.text);
-      if (!run.marks.includes('code'))
-        content = content.replace(/\[\[([^\]]+)\]\]/g, (_, key) => {
-          const r = resolve(key.replaceAll('&amp;', '&'), g, lang, catalogues, pdf);
-          return r.href
-            ? `<a href="${escape(r.href)}">${escape(r.label)}</a>`
-            : `<span class="warning">${escape(r.label)}</span>`;
-        });
+      if (run.key) {
+        const r = resolve(run.key, g, lang, catalogues, pdf);
+        content = r.href
+          ? `<a href="${escape(r.href)}"${r.warning ? ` title="${escape(r.warning)}"` : ''}>${escape(r.label)}</a>`
+          : `<span class="warning">${escape(r.label)}</span>`;
+      }
       return run.marks.reduceRight((html, mark) => `<${mark}>${html}</${mark}>`, content);
     })
     .join('');
